@@ -20,8 +20,13 @@ class pod():
             S = model.A
         elif space_product == "H1":
             S = model.M + model.A
+            
         start_time = perf_counter()
-        self.W_chol = linalg.cholesky(S.todense())
+        # Handle both sparse and dense matrices
+        if hasattr(S, 'todense'):
+            self.W_chol = linalg.cholesky(S.todense())
+        else:
+            self.W_chol = linalg.cholesky(S)
         end_time = perf_counter()
         print(f'Cholesky of space product done in {end_time-start_time}')
 
@@ -57,7 +62,8 @@ class pod():
         ### INITIALIZATION
         # set truncation tol
         tol = 1e-15
-        truncate_normalized_POD_values = False
+        truncate_normalized_POD_values = True
+        self.basissize = l
         
         if W is None: 
             # TODO set it to euclidian product
@@ -93,6 +99,7 @@ class pod():
             Y_hat = self.W_chol@Y@Dsqrt
             l_min = min(l,min(Y_hat.shape)-1)
             if l != l_min:
+                self.basissize = l_min
                 print(f'Basissize dropped from {l} to {l_min} due to rank condition of snapshot matrix.')
             
             # perform svd
@@ -115,6 +122,7 @@ class pod():
             POD_values = POD_values[indices]
             U = U[:,indices]
             if l_min != U.shape[1]:
+                self.basissize = U.shape[1]
                 print(f'Basissize dropped from {l_min} to {U.shape[1]} due to truncation of small modes.')
             
             # get POD basis
@@ -122,6 +130,10 @@ class pod():
                 POD_Basis = linalg.solve_triangular(self.W_chol, U, lower = False)
             else:
                 POD_Basis = U
+
+            # Normalize each POD basis vector
+            for i in range(POD_Basis.shape[1]):
+                POD_Basis[:, i] = POD_Basis[:, i] / np.linalg.norm(POD_Basis[:, i])
         
         elif flag == 1: 
             # Compute eigenvalues of YY' with size (n_x, n_x):
@@ -146,6 +158,7 @@ class pod():
             POD_values = POD_values[indices]
             U = U[:,indices]
             if l_min != U.shape[1]:
+                self.basissize = U.shape[1]
                 print(f'Basissize dropped from {l} to {U.shape[1]} due to truncation of small modes.')
             
             # get POD basis
@@ -154,6 +167,10 @@ class pod():
             else:
                 POD_Basis = U
             
+            # Normalize each POD basis vector
+            for i in range(POD_Basis.shape[1]):
+                POD_Basis[:, i] = POD_Basis[:, i] / np.linalg.norm(POD_Basis[:, i])
+
         elif flag == 2: 
             # Method of snapshots: eigs of Y'Y with size (n_t,n_t)
            
@@ -177,10 +194,15 @@ class pod():
             POD_values = POD_values[indices]
             U = U[:,indices]
             if l_min != U.shape[1]:
+                self.basissize = U.shape[1]
                 print(f'Basissize dropped from {l} to {U.shape[1]} due to truncation of small modes.')
             
             # get POD basis
             POD_Basis = Y@Dsqrt@U*1/(np.sqrt(POD_values))
+
+            # Normalize each POD basis vector
+            for i in range(POD_Basis.shape[1]):
+                POD_Basis[:, i] = POD_Basis[:, i] / np.linalg.norm(POD_Basis[:, i])
             
         else:
             assert 0, 'wrong flag input ...'
@@ -195,18 +217,26 @@ class pod():
         plt.figure()
         plt.title('POD Eigenvalues decay')
         plt.semilogy(self.POD_values)
-        plt.show()
-        plt.savefig(path+"POD_eigenvalues_decay.png")###
+        plt.savefig(path+"POD_eigenvalues_decay.png")
+        plt.close()
 
-    def project(self, U, V=None):
+    def plot_error(self,error_list,path):
+        l = len(error_list)
+        x = np.arange(1,l+1)
+        plt.figure()
+        plt.plot(x,error_list,marker='o')
+        plt.xticks(x)
+        plt.title("POD error")
+        plt.xlabel("number of snapshots$\ell$")
+        plt.ylabel("||u_POD-u_FE||")
+        plt.savefig(path+"POD_error.png")
+        plt.close()
+
+    def project(self, U, Y_d, U_d, U_0, V=None):
         # init
         model = self.model
         if V is None: #then do Galerkin projection
             V = U
-
-        # Save original control dimension BEFORE projection
-        original_control_dof = model.control_dof
-        original_state_dof = model.state_dof
 
         # Store original matrices and POD basis
         model.M_FOM = model.M.copy()
@@ -225,5 +255,11 @@ class pod():
         model.y0 =  U.T@model.y0
         model.is_reduced = True
         model.update_state_products()
+
+        Y_d_proj = U.T @ Y_d # project Y_d into reduced space
+        U_d_proj = U.T @ U_d #project U_d into reduced space
+        U_0_proj = U.T @ U_0 # project U_0 into reduced space
         
         print(f"Projected model: state_dof={model.state_dof}, control_dof={model.control_dof}")
+
+        return Y_d_proj, U_d_proj, U_0_proj

@@ -12,12 +12,12 @@ from scipy.sparse.linalg import spsolve
 from time import time
 
 class optimization_class():
-    def __init__( self, m ):
+    def __init__( self,m,beta,tol):
         self.m = m
         self.Y_d = 0. # desired observable
         self.U_d = 0. # control energy
-        self.beta = 1.e-4 # regularization factor in the cost functional
-        self.tol = 1.e-13 # tolerance for the optimization algorithm
+        self.beta = beta # regularization factor in the cost functional
+        self.tol = tol # tolerance for the optimization algorithm
         self.prec = "id" # standard preconditioner is the identity
     
     def eval_cost( self, u ):
@@ -138,13 +138,13 @@ class optimization_class():
             plt.title(r'BB. Convergence of $\|\nabla F(u_k)\|_U$')
             if options['save_plot_grad_convergence']:
                 plt.savefig( options['path'] )
-            plt.figure()
+            plt.close()
         if len(list_cost)>1:
             plt.semilogy(list_cost)
             plt.title(r'BB. Convergence of $\|F(u_k)\|_U$')
             if options['save_plot_grad_convergence']:
                 plt.savefig( options['path']+"_cost" )
-            plt.figure()
+            plt.close()
         return u_k, history
     
     
@@ -194,5 +194,3 @@ class optimization_class():
                 plt.savefig( options['path'] )
             plt.figure()
         return u
-    
-

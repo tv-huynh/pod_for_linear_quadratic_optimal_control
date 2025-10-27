@@ -68,6 +68,7 @@ class parabolic_model():
         fenics.plot(self.mesh, linewidth=1.5, color="tab:blue")
         plt.title("Mesh")
         plt.savefig("plots/mesh.png")
+        plt.close()
         
     def define_function_space( self ):
         self.V = fenics.FunctionSpace( self.mesh, 'CG', 1 )

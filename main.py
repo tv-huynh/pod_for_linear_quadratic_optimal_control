@@ -12,6 +12,9 @@ from scipy.sparse.linalg import factorized
 import supplements, optimization, reduce
 
 # Initialize
+beta = 1.e-3 # regularization factor in the cost functional
+tol = 1.e-7 # tolerance for the optimization algorithm
+
 p = supplements.analytical_problem()
 p.x1a = 0.0; p.x1b = 1.0;   p.x2a = 0.0; p.x2b = 1.0
 p.t0 = 0;                   p.T = 2
@@ -23,9 +26,7 @@ u_d_exp = fenics.Constant(0.0)
 
 m = supplements.parabolic_model(p)
 m.build_problem()
-opt = optimization.optimization_class(m)
-opt.beta = 1.e-3
-opt.tol = 1.e-7
+opt = optimization.optimization_class(m,beta,tol)
 y_d_0 = fenics.interpolate( y_d_exp, m.V ).vector()[:]
 opt.Y_d = np.repeat( y_d_0.reshape(-1,1), m.K, axis=1 )
 u_d_0 = fenics.interpolate( u_d_exp, m.V ).vector()[:]
@@ -61,6 +62,39 @@ print(f"  Control dimension: {U_opt_BB.shape[0]}")
 print(f"  Time steps: {Y_opt_BB.shape[1]}")
 
 #============================================================
+#%% FOM: different beta
+#============================================================
+print("\n" + "="*60)
+print("SOLVING FULL-ORDER MODEL (FOM) FOR DIFFERENT BETA")
+print("="*60)
+
+beta_list = [10.**(-j) for j in range(0,8)]
+
+for j in range(0,8):
+    beta = beta_list[j]
+    opt_beta = optimization.optimization_class(m,beta,tol)
+    opt_beta.Y_d = np.repeat( y_d_0.reshape(-1,1), m.K, axis=1 )
+    opt_beta.U_d = np.repeat( u_d_0.reshape(-1,1), m.K, axis=1 )
+
+    u_opt_BB_beta, history_beta = opt_beta.solve( U_0, "BB",
+                        print_info=True,
+                        print_final=True,
+                        plot_grad_convergence=True,
+                        save_plot_grad_convergence=GENERATE_PLOTS,
+                        path=PLOTS+"convergence_BB_beta"+str(j),
+                    )
+    U_opt_BB_beta = m.vector_to_matrix(u_opt_BB_beta,option="control")
+    Y_opt_BB_beta = m.solve_state(U_opt_BB_beta)
+    P_opt_BB_beta = m.solve_adjoint(opt_beta.Y_d-Y_opt_BB_beta)
+
+    if GENERATE_PLOTS:
+        
+        # Final time step
+        m.plot_3d(Y_opt_BB_beta[:,p.K-2], title=f"FOM State t={p.K-2} for β={beta:.0e}", save_png=True, path=PLOTS+f"Y_FOM_{p.K-2}_beta{j}.png")
+        m.plot_3d(U_opt_BB_beta[:,p.K-2], title=f"FOM Control t={p.K-2} for β={beta:.0e}", save_png=True, path=PLOTS+f"U_FOM_{p.K-2}_beta{j}.png")
+        m.plot_3d(P_opt_BB_beta[:,p.K-2], title=f"FOM Adjoint t={p.K-2} for β={beta:.0e}", save_png=True, path=PLOTS+f"P_FOM_{p.K-2}_beta{j}.png")
+
+#============================================================
 #%% ROM
 #============================================================
 #%% Construct ROM out of FOM snapshots
@@ -68,8 +102,12 @@ print("\n" + "="*60)
 print("CONSTRUCTING REDUCED-ORDER MODEL (ROM)")
 print("="*60)
 
-l = 10
+l = 20
 optimal_snapshots = True
+if optimal_snapshots == True:
+    file_name = "optimalSnapshots"
+else:
+    file_name = "initalSnapshots"
 
 # Get snapshots
 if optimal_snapshots == True: # train with optimal snapshots
@@ -83,13 +121,10 @@ print("Doing POD with l="+str(l)+" POD basis vectors")
 # Do POD
 pod = reduce.pod(m)
 POD_Basis, POD_values = pod.pod_basis(snapshots,l)
-pod.project(POD_Basis)
-opt_ROM = optimization.optimization_class(pod.model)
-opt_ROM.beta = opt.beta
-opt_ROM.tol = opt.tol
-opt_ROM.Y_d = POD_Basis.T @ opt.Y_d # project Y_d into reduced space
-opt_ROM.U_d = POD_Basis.T @ opt.U_d #project U_d into reduced space
-U_0_ROM = POD_Basis.T @ U_0 # project U_0 into reduced space
+Y_d_proj, U_d_proj, U_0_ROM = pod.project(POD_Basis,opt.Y_d,opt.U_d,U_0)
+opt_ROM = optimization.optimization_class(pod.model,beta,tol)
+opt_ROM.Y_d = Y_d_proj
+opt_ROM.U_d = U_d_proj
 
 print(f"  Reduced Y_d shape: {opt_ROM.Y_d.shape}")
 print(f"  Reduced U_d shape: {opt_ROM.U_d.shape}")
@@ -131,6 +166,10 @@ print(f"  State dimension: {Y_BB_ROM_full.shape[0]}")
 print(f"  Control dimension: {U_BB_ROM_full.shape[0]}")
 print(f"  Adjoint dimension: {P_BB_ROM_full.shape[0]}")
 
+print(f"\nFOM optimization time: {history['time']:.3f} seconds")
+print(f"ROM optimization time: {history_BB_ROM['time']:.3f} seconds")
+print(f"Speedup factor: {history['time']/history_BB_ROM['time']:.2f}x")
+'''
 #============================================================
 #%% Error analysis
 #============================================================
@@ -139,35 +178,58 @@ print("\n" + "="*60)
 print("ERROR ANALYSIS")
 print("="*60)
 
-# Compute errors using FOM matrices
-Y_diff = Y_opt_BB - Y_BB_ROM_full
-U_diff = U_opt_BB - U_BB_ROM_full
-P_diff = P_opt_BB - P_BB_ROM_full
+space_norm = "L2"
+control_error_list = []
 
-m.M = m.M_FOM
-m.A = m.A_FOM
-m.update_state_products()
+for j in range(1,pod.basissize+1):
+    print("\n" + "-"*60)
+    print("Number of snapshots l="+str(j))
+    print("-"*60)
+    m_err = supplements.parabolic_model(p)
+    m_err.build_problem()
+    pod_err = reduce.pod(m_err)
 
-state_error = m.eval_L2H_norm(Y_diff, space_norm="L2")
-state_norm = m.eval_L2H_norm(Y_opt_BB, space_norm="L2")
-state_rel_error = state_error / state_norm
+    POD_basis_err, POD_values_err = pod_err.pod_basis(snapshots,j)
+    Y_d_err, U_d_err, U_0_ROM_err= pod_err.project(POD_basis_err,opt.Y_d,opt.U_d,U_0)
+    opt_ROM_err = optimization.optimization_class(pod_err.model,beta,tol)
+    opt_ROM_err.Y_d = Y_d_err
+    opt_ROM_err.U_d = U_d_err
 
-control_error = m.eval_L2H_norm(U_diff, space_norm="L2")
-control_norm = m.eval_L2H_norm(U_opt_BB, space_norm="L2")
-control_rel_error = control_error / control_norm
+    print(f"  Reduced Y_d shape: {opt_ROM_err.Y_d.shape}")
+    print(f"  Reduced U_d shape: {opt_ROM_err.U_d.shape}")
+    print(f"Initial guess U_0_ROM shape: {U_0_ROM_err.shape}")
 
-adjoint_error = m.eval_L2H_norm(P_diff, space_norm="L2")
-adjoint_norm = m.eval_L2H_norm(P_opt_BB, space_norm="L2")
-adjoint_rel_error = adjoint_error / adjoint_norm
+    # Solve ROM 
+    print("\nSOLVING REDUCED-ORDER MODEL (ROM)")
 
-print(f"Relative state error:   {state_rel_error:.6e}")
-print(f"Relative control error: {control_rel_error:.6e}")
-print(f"Relative adjoint error: {adjoint_rel_error:.6e}")
+    u_BB_ROM_err, _ = opt_ROM_err.solve( U_0_ROM_err, "BB",
+                                print_info=True,
+                                print_final=True,
+                                plot_grad_convergence=True,
+                                save_plot_grad_convergence=GENERATE_PLOTS,
+                                path=PLOTS+"convergence_BB_ROM_"+str(j)+"snapshots",
+                        )
+    U_BB_ROM_err = pod_err.model.vector_to_matrix(u_BB_ROM_err,option="control")
 
-print(f"\nFOM optimization time: {history['time']:.3f} seconds")
-print(f"ROM optimization time: {history_BB_ROM['time']:.3f} seconds")
-print(f"Speedup factor: {history['time']/history_BB_ROM['time']:.2f}x")
+    # Recover FOM solution from ROM
+    U_BB_ROM_full_err = POD_basis_err @ U_BB_ROM_err  # Project control back to full space
 
+    # Compute error using FOM matrices
+    U_diff = U_BB_ROM_full_err - U_opt_BB
+
+    m_err.M = m_err.M_FOM
+    m_err.A = m_err.A_FOM
+    m_err.update_state_products()
+
+    control_error = m_err.eval_L2H_norm(U_diff, space_norm)
+    control_norm = m_err.eval_L2H_norm(U_opt_BB, space_norm)
+    control_rel_error = control_error / control_norm
+    control_error_list.append(control_rel_error)
+
+    print(f"Relative control error: {control_rel_error:.6e}")
+
+pod.plot_error(control_error_list,path=PLOTS)
+'''
 #============================================================
 #%% Plots
 #============================================================

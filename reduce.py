@@ -214,23 +214,41 @@ class pod():
         return POD_Basis, POD_values
     
     def plot_pod_values(self,path):
+        l = len(self.POD_values)
+        x_values = np.arange(1,l+1)
         plt.figure()
-        plt.title('POD Eigenvalues decay')
-        plt.semilogy(self.POD_values)
-        plt.savefig(path+"POD_eigenvalues_decay.png")
+        # plt.title("POD Eigenvalues decay")
+        plt.plot(x_values,self.POD_values,marker="o")
+        print("\nPOD eigenvalues lambda_i:")
+
+        for i, x in enumerate(x_values):
+            y = self.POD_values[i]
+            print("lambda_"+str(i)+"="+str(y))
+
+        plt.ylabel(r"$\lambda_i$")
+        plt.xticks(x_values)
+        plt.tight_layout()
+        plt.savefig(path+"POD_eigenvalues_decay.png",dpi=600)
         plt.close()
 
-    def plot_error(self,error_list,path):
+    def plot_error(self, error_list, path):
         l = len(error_list)
-        x = np.arange(1,l+1)
+        x_values = np.arange(1, l+1)
         plt.figure()
-        plt.plot(x,error_list,marker='o')
-        plt.xticks(x)
-        plt.title("POD error")
-        plt.xlabel("number of snapshots$\ell$")
-        plt.ylabel("||u_POD-u_FE||")
-        plt.savefig(path+"POD_error.png")
+        plt.plot(x_values, error_list, marker="o")
+        print("\nControl error || u_POD - u_FE || depending on l:")
+
+        for i, x in enumerate(x_values):
+            y = error_list[i]
+            print("l="+str(i)+", err="+str(y))
+        
+        plt.xticks(x_values)
+        plt.xlabel("number of snapshots $\ell$")
+        plt.ylabel(r"$||\bar{u}^{\ell}-\bar{u}||$")
+        plt.tight_layout()
+        plt.savefig(path + "POD_error.png", dpi=600)
         plt.close()
+
 
     def project(self, U, Y_d, U_d, U_0, V=None):
         # init

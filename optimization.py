@@ -91,7 +91,8 @@ class optimization_class():
                    }
         
         if options['print_info']:
-            cost = self.eval_cost(u_k); list_cost = [ cost ]
+            cost = self.eval_cost(u_k); 
+            history["cost"].append(cost)
             print("k:{}, cost={}, err={}".format(k,cost,err))
             
         while err > self.tol and k<500 :
@@ -135,15 +136,22 @@ class optimization_class():
         if options['plot_grad_convergence']:
             plt.figure(figsize=(8, 6)) 
             plt.semilogy(history["error"])
-            plt.title(r'BB. Convergence of $\|\nabla F(u_k)\|_U$')
+            plt.xlabel("Iteration")
+            plt.ylabel(r"$\|\nabla F(u_k)\|_U$")
+            plt.tight_layout()
+            # plt.title(r'BB. Convergence of $\|\nabla F(u_k)\|_U$')
             if options['save_plot_grad_convergence']:
-                plt.savefig( options['path'] )
+                plt.savefig(options['path']+"_gradient",dpi=600)
             plt.close()
-        if len(list_cost)>1:
-            plt.semilogy(list_cost)
-            plt.title(r'BB. Convergence of $\|F(u_k)\|_U$')
+        if len(history["cost"])>1:
+            plt.figure(figsize=(8, 6))
+            plt.semilogy(history["cost"])
+            plt.xlabel("Iteration")
+            plt.ylabel(r"$\|F(u_k)\|_U$")
+            plt.tight_layout()
+            # plt.title(r'BB. Convergence of $\|F(u_k)\|_U$')
             if options['save_plot_grad_convergence']:
-                plt.savefig( options['path']+"_cost" )
+                plt.savefig(options['path']+"_cost",dpi=600)
             plt.close()
         return u_k, history
     

@@ -33,9 +33,13 @@ u_d_0 = fenics.interpolate( u_d_exp, m.V ).vector()[:]
 opt.U_d = np.repeat( u_d_0.reshape(-1,1), m.K, axis=1 )
 U_0 = opt.U_d.copy()
 
+VARY_BETA = False
+DO_ERROR_ANALYSIS = True
 GENERATE_PLOTS = True
+
 if GENERATE_PLOTS:
     PLOTS = "plots/"; m.format_folder(PLOTS)
+
     
 #============================================================
 #%% FOM
@@ -45,54 +49,56 @@ print("="*60)
 print("SOLVING FULL-ORDER MODEL (FOM)")
 print("="*60)
 
-u_opt_BB, history = opt.solve( U_0, "BB",
+u_opt, history = opt.solve( U_0, "BB",
                         print_info=True,
                         print_final=True,
                         plot_grad_convergence=True,
                         save_plot_grad_convergence=GENERATE_PLOTS,
-                        path=PLOTS+"convergence_BB_FOM",
+                        path=PLOTS+"convergence_FOM",
                     )
-U_opt_BB = m.vector_to_matrix(u_opt_BB,option="control")
-Y_opt_BB = m.solve_state(U_opt_BB)
-P_opt_BB = m.solve_adjoint(opt.Y_d-Y_opt_BB)
+U_opt = m.vector_to_matrix(u_opt,option="control")
+Y_opt = m.solve_state(U_opt)
+P_opt = m.solve_adjoint(opt.Y_d-Y_opt)
 
 print(f"\nFOM Results:")
-print(f"  State dimension: {Y_opt_BB.shape[0]}")
-print(f"  Control dimension: {U_opt_BB.shape[0]}")
-print(f"  Time steps: {Y_opt_BB.shape[1]}")
+print(f"  State dimension: {Y_opt.shape[0]}")
+print(f"  Control dimension: {U_opt.shape[0]}")
+print(f"  Time steps: {Y_opt.shape[1]}")
 
 #============================================================
 #%% FOM: different beta
 #============================================================
-print("\n" + "="*60)
-print("SOLVING FULL-ORDER MODEL (FOM) FOR DIFFERENT BETA")
-print("="*60)
+if VARY_BETA:
+    print("\n" + "="*60)
+    print("SOLVING FULL-ORDER MODEL (FOM) FOR DIFFERENT BETA")
+    print("="*60)
 
-beta_list = [10.**(-j) for j in range(0,8)]
+    beta_list = [10.**(-j) for j in range(0,8)]
 
-for j in range(0,8):
-    beta = beta_list[j]
-    opt_beta = optimization.optimization_class(m,beta,tol)
-    opt_beta.Y_d = np.repeat( y_d_0.reshape(-1,1), m.K, axis=1 )
-    opt_beta.U_d = np.repeat( u_d_0.reshape(-1,1), m.K, axis=1 )
+    for j in range(0,8):
+        print("\n" + "-"*60)
+        print("beta = "+str(j))
+        print("-"*60)
+        beta = beta_list[j]
+        opt_beta = optimization.optimization_class(m,beta,tol)
+        opt_beta.Y_d = np.repeat( y_d_0.reshape(-1,1), m.K, axis=1 )
+        opt_beta.U_d = np.repeat( u_d_0.reshape(-1,1), m.K, axis=1 )
 
-    u_opt_BB_beta, history_beta = opt_beta.solve( U_0, "BB",
-                        print_info=True,
-                        print_final=True,
-                        plot_grad_convergence=True,
-                        save_plot_grad_convergence=GENERATE_PLOTS,
-                        path=PLOTS+"convergence_BB_beta"+str(j),
-                    )
-    U_opt_BB_beta = m.vector_to_matrix(u_opt_BB_beta,option="control")
-    Y_opt_BB_beta = m.solve_state(U_opt_BB_beta)
-    P_opt_BB_beta = m.solve_adjoint(opt_beta.Y_d-Y_opt_BB_beta)
+        u_opt_beta, history_beta = opt_beta.solve( U_0, "BB",
+                            print_info=True,
+                            print_final=True,
+                            plot_grad_convergence=True,
+                            save_plot_grad_convergence=GENERATE_PLOTS,
+                            path=PLOTS+"convergence_BB_beta"+str(j),
+                        )
+        U_opt_beta = m.vector_to_matrix(u_opt_beta,option="control")
+        Y_opt_beta = m.solve_state(U_opt_beta)
+        P_opt_beta = m.solve_adjoint(opt_beta.Y_d-Y_opt_beta)
 
-    if GENERATE_PLOTS:
-        
-        # Final time step
-        m.plot_3d(Y_opt_BB_beta[:,p.K-2], title=f"FOM State t={p.K-2} for β={beta:.0e}", save_png=True, path=PLOTS+f"Y_FOM_{p.K-2}_beta{j}.png")
-        m.plot_3d(U_opt_BB_beta[:,p.K-2], title=f"FOM Control t={p.K-2} for β={beta:.0e}", save_png=True, path=PLOTS+f"U_FOM_{p.K-2}_beta{j}.png")
-        m.plot_3d(P_opt_BB_beta[:,p.K-2], title=f"FOM Adjoint t={p.K-2} for β={beta:.0e}", save_png=True, path=PLOTS+f"P_FOM_{p.K-2}_beta{j}.png")
+        if GENERATE_PLOTS: # final time step
+            m.plot_3d(U_opt_beta[:,p.K-2], save_png=True, path=PLOTS+f"U_FOM_{p.K-2}_beta{j}.png") # title=f"FOM Control t={p.K-2} for $\beta$={beta:.0e}"
+            m.plot_3d(Y_opt_beta[:,p.K-2], save_png=True, path=PLOTS+f"Y_FOM_{p.K-2}_beta{j}.png") # title=f"FOM State t={p.K-2} for $\beta$={beta:.0e}"
+            m.plot_3d(P_opt_beta[:,p.K-2], save_png=True, path=PLOTS+f"P_FOM_{p.K-2}_beta{j}.png") # title=f"FOM Adjoint t={p.K-2} for $\beta$={beta:.0e}"
 
 #============================================================
 #%% ROM
@@ -111,7 +117,7 @@ else:
 
 # Get snapshots
 if optimal_snapshots == True: # train with optimal snapshots
-    snapshots = [Y_opt_BB, P_opt_BB]
+    snapshots = [Y_opt, P_opt]
     print("Using optimal FOM snapshots for POD basis")
 else: # train with initial snapshots
     snapshots = [m.get_snapshots(U_0,opt.Y_d)]
@@ -140,96 +146,99 @@ print("\n" + "="*60)
 print("SOLVING REDUCED-ORDER MODEL (ROM)")
 print("="*60)
 
-u_BB_ROM, history_BB_ROM = opt_ROM.solve( U_0_ROM, "BB",
+u_ROM, history_ROM = opt_ROM.solve( U_0_ROM, "BB",
                             print_info=True,
                             print_final=True,
                             plot_grad_convergence=True,
                             save_plot_grad_convergence=GENERATE_PLOTS,
-                            path=PLOTS+"convergence_BB_ROM",
+                            path=PLOTS+"convergence_ROM",
                     )
-U_BB_ROM = pod.model.vector_to_matrix(u_BB_ROM,option="control")
-Y_BB_ROM = pod.model.solve_state(U_BB_ROM)
-P_BB_ROM = pod.model.solve_adjoint(opt_ROM.Y_d - Y_BB_ROM)
+U_ROM = pod.model.vector_to_matrix(u_ROM,option="control")
+Y_ROM = pod.model.solve_state(U_ROM)
+P_ROM = pod.model.solve_adjoint(opt_ROM.Y_d - Y_ROM)
 
-print(f"\nROM Results (before recovery):")
-print(f"  Reduced state dimension: {Y_BB_ROM.shape[0]}")
-print(f"  Full control dimension: {U_BB_ROM.shape[0]}")
-print(f"  Time steps: {Y_BB_ROM.shape[1]}")
+# print(f"\nROM Results (before recovery):")
+# print(f"  Reduced state dimension: {Y_ROM.shape[0]}")
+# print(f"  Full control dimension: {U_ROM.shape[0]}")
+# print(f"  Time steps: {Y_ROM.shape[1]}")
 
 # Recover FOM solution from ROM
-U_BB_ROM_full = POD_Basis @ U_BB_ROM  # Project control back to full space
-Y_BB_ROM_full = POD_Basis @ Y_BB_ROM  # Project state back to full space
-P_BB_ROM_full = POD_Basis @ P_BB_ROM  # Project adjoint back to full space
+U_ROM_full = POD_Basis @ U_ROM  # Project control back to full space
+Y_ROM_full = POD_Basis @ Y_ROM  # Project state back to full space
+P_ROM_full = POD_Basis @ P_ROM  # Project adjoint back to full space
 
-print(f"\nROM Results (after recovery to full space):")
-print(f"  State dimension: {Y_BB_ROM_full.shape[0]}")
-print(f"  Control dimension: {U_BB_ROM_full.shape[0]}")
-print(f"  Adjoint dimension: {P_BB_ROM_full.shape[0]}")
+# print(f"\nROM Results (after recovery to full space):")
+# print(f"  State dimension: {Y_ROM_full.shape[0]}")
+# print(f"  Control dimension: {U_ROM_full.shape[0]}")
+# print(f"  Adjoint dimension: {P_ROM_full.shape[0]}")
 
 print(f"\nFOM optimization time: {history['time']:.3f} seconds")
-print(f"ROM optimization time: {history_BB_ROM['time']:.3f} seconds")
-print(f"Speedup factor: {history['time']/history_BB_ROM['time']:.2f}x")
-'''
+print(f"ROM optimization time: {history_ROM['time']:.3f} seconds")
+print(f"Speedup factor: {history['time']/history_ROM['time']:.2f}x")
+pod.plot_pod_values(path=PLOTS)
+
 #============================================================
 #%% Error analysis
 #============================================================
 #%% Compute errors
-print("\n" + "="*60)
-print("ERROR ANALYSIS")
-print("="*60)
+if DO_ERROR_ANALYSIS:
+    print("\n" + "="*60)
+    print("ERROR ANALYSIS")
+    print("="*60)
 
-space_norm = "L2"
-control_error_list = []
+    space_norm = "L2"
+    control_error_list = []
 
-for j in range(1,pod.basissize+1):
-    print("\n" + "-"*60)
-    print("Number of snapshots l="+str(j))
-    print("-"*60)
-    m_err = supplements.parabolic_model(p)
-    m_err.build_problem()
-    pod_err = reduce.pod(m_err)
+    for j in range(1,pod.basissize+1):
+        print("\n" + "-"*60)
+        print("Number of snapshots l="+str(j))
+        print("-"*60)
+        m_err = supplements.parabolic_model(p)
+        m_err.build_problem()
+        pod_err = reduce.pod(m_err)
 
-    POD_basis_err, POD_values_err = pod_err.pod_basis(snapshots,j)
-    Y_d_err, U_d_err, U_0_ROM_err= pod_err.project(POD_basis_err,opt.Y_d,opt.U_d,U_0)
-    opt_ROM_err = optimization.optimization_class(pod_err.model,beta,tol)
-    opt_ROM_err.Y_d = Y_d_err
-    opt_ROM_err.U_d = U_d_err
+        POD_basis_err, POD_values_err = pod_err.pod_basis(snapshots,j)
+        Y_d_err, U_d_err, U_0_ROM_err= pod_err.project(POD_basis_err,opt.Y_d,opt.U_d,U_0)
+        opt_ROM_err = optimization.optimization_class(pod_err.model,beta,tol)
+        opt_ROM_err.Y_d = Y_d_err
+        opt_ROM_err.U_d = U_d_err
 
-    print(f"  Reduced Y_d shape: {opt_ROM_err.Y_d.shape}")
-    print(f"  Reduced U_d shape: {opt_ROM_err.U_d.shape}")
-    print(f"Initial guess U_0_ROM shape: {U_0_ROM_err.shape}")
+        # print(f"  Reduced Y_d shape: {opt_ROM_err.Y_d.shape}")
+        # print(f"  Reduced U_d shape: {opt_ROM_err.U_d.shape}")
+        # print(f"Initial guess U_0_ROM shape: {U_0_ROM_err.shape}")
 
-    # Solve ROM 
-    print("\nSOLVING REDUCED-ORDER MODEL (ROM)")
+        # Solve ROM 
+        print("\nSOLVING REDUCED-ORDER MODEL (ROM)")
 
-    u_BB_ROM_err, _ = opt_ROM_err.solve( U_0_ROM_err, "BB",
-                                print_info=True,
-                                print_final=True,
-                                plot_grad_convergence=True,
-                                save_plot_grad_convergence=GENERATE_PLOTS,
-                                path=PLOTS+"convergence_BB_ROM_"+str(j)+"snapshots",
-                        )
-    U_BB_ROM_err = pod_err.model.vector_to_matrix(u_BB_ROM_err,option="control")
+        u_BB_ROM_err, _ = opt_ROM_err.solve( U_0_ROM_err, "BB",
+                                    print_info=True,
+                                    print_final=True,
+                                    plot_grad_convergence=True,
+                                    save_plot_grad_convergence=GENERATE_PLOTS,
+                                    path=PLOTS+"convergence_BB_ROM_"+str(j)+"snapshots",
+                            )
+        U_BB_ROM_err = pod_err.model.vector_to_matrix(u_BB_ROM_err,option="control")
 
-    # Recover FOM solution from ROM
-    U_BB_ROM_full_err = POD_basis_err @ U_BB_ROM_err  # Project control back to full space
+        # Recover FOM solution from ROM
+        U_BB_ROM_full_err = POD_basis_err @ U_BB_ROM_err  # Project control back to full space
 
-    # Compute error using FOM matrices
-    U_diff = U_BB_ROM_full_err - U_opt_BB
+        # Compute error using FOM matrices
+        U_diff = U_BB_ROM_full_err - U_opt
 
-    m_err.M = m_err.M_FOM
-    m_err.A = m_err.A_FOM
-    m_err.update_state_products()
+        m_err.M = m_err.M_FOM
+        m_err.A = m_err.A_FOM
+        m_err.update_state_products()
 
-    control_error = m_err.eval_L2H_norm(U_diff, space_norm)
-    control_norm = m_err.eval_L2H_norm(U_opt_BB, space_norm)
-    control_rel_error = control_error / control_norm
-    control_error_list.append(control_rel_error)
+        control_error = m_err.eval_L2H_norm(U_diff, space_norm)
+        control_norm = m_err.eval_L2H_norm(U_opt, space_norm)
+        control_rel_error = control_error / control_norm
+        control_error_list.append(control_rel_error)
 
-    print(f"Relative control error: {control_rel_error:.6e}")
+        print(f"Relative control error: {control_rel_error:.6e}")
 
-pod.plot_error(control_error_list,path=PLOTS)
-'''
+    if GENERATE_PLOTS:
+        pod.plot_error(control_error_list,path=PLOTS)
+
 #============================================================
 #%% Plots
 #============================================================
@@ -238,27 +247,25 @@ if GENERATE_PLOTS:
     print("GENERATING PLOTS")
     print("="*60)
     
-    # Plot POD eigenvalue decay
-    pod.plot_pod_values(path=PLOTS)
-    
+    '''
     for k in range(0, p.K, 10):
         print(f"Plotting time step {k}...")
-        m.plot_3d(Y_opt_BB[:,k], title=f"FOM State t={k}", save_png=True, path=PLOTS+f"Y_FOM_{k}.png")
-        m.plot_3d(U_opt_BB[:,k], title=f"FOM Control t={k}", save_png=True, path=PLOTS+f"U_FOM_{k}.png")
-        m.plot_3d(P_opt_BB[:,k], title=f"FOM Adjoint t={k}", save_png=True, path=PLOTS+f"P_FOM_{k}.png")
-        m.plot_3d(Y_BB_ROM_full[:,k], title=f"ROM State t={k}", save_png=True, path=PLOTS+f"Y_ROM_{k}.png")
-        m.plot_3d(U_BB_ROM_full[:,k], title=f"ROM Control t={k}", save_png=True, path=PLOTS+f"U_ROM_{k}.png")
-        m.plot_3d(P_BB_ROM_full[:,k], title=f"ROM Adjoint t={k}", save_png=True, path=PLOTS+f"P_ROM_{k}.png")
+        m.plot_3d(Y_opt[:,k], save_png=True, path=PLOTS+f"Y_FOM_{k}.png") # title=f"FOM State t={k}"
+        m.plot_3d(U_opt[:,k], save_png=True, path=PLOTS+f"U_FOM_{k}.png") # title=f"FOM Control t={k}"
+        m.plot_3d(P_opt[:,k], save_png=True, path=PLOTS+f"P_FOM_{k}.png") # title=f"FOM Adjoint t={k}"
+        m.plot_3d(Y_ROM_full[:,k], save_png=True, path=PLOTS+f"Y_ROM_{k}.png") # title=f"ROM State t={k}"
+        m.plot_3d(U_ROM_full[:,k], save_png=True, path=PLOTS+f"U_ROM_{k}.png") # title=f"ROM Control t={k}"
+        m.plot_3d(P_ROM_full[:,k], save_png=True, path=PLOTS+f"P_ROM_{k}.png") # title=f"ROM Adjoint t={k}"
     
     # Final time step
-    m.plot_3d(Y_opt_BB[:,p.K-2], title=f"FOM State t={p.K-2}", save_png=True, path=PLOTS+f"Y_FOM_{p.K-2}.png")
-    m.plot_3d(U_opt_BB[:,p.K-2], title=f"FOM Control t={p.K-2}", save_png=True, path=PLOTS+f"U_FOM_{p.K-2}.png")
-    m.plot_3d(P_opt_BB[:,p.K-2], title=f"FOM Adjoint t={p.K-2}", save_png=True, path=PLOTS+f"P_FOM_{p.K-2}.png")
-    m.plot_3d(Y_BB_ROM_full[:,p.K-2], title=f"ROM State t={p.K-2}", save_png=True, path=PLOTS+f"Y_ROM_{p.K-2}.png")
-    m.plot_3d(U_BB_ROM_full[:,p.K-2], title=f"ROM Control t={p.K-2}", save_png=True, path=PLOTS+f"U_ROM_{p.K-2}.png")
-    m.plot_3d(P_BB_ROM_full[:,p.K-2], title=f"ROM Adjoint t={p.K-2}", save_png=True, path=PLOTS+f"P_ROM_{p.K-2}.png")
-    
-    print("All plots saved to " + PLOTS)
+    m.plot_3d(Y_opt[:,p.K-2], save_png=True, path=PLOTS+f"Y_FOM_{p.K-2}.png") # title=f"FOM State t={p.K-2}"
+    m.plot_3d(U_opt[:,p.K-2], save_png=True, path=PLOTS+f"U_FOM_{p.K-2}.png") # title=f"FOM Control t={p.K-2}"
+    m.plot_3d(P_opt[:,p.K-2], save_png=True, path=PLOTS+f"P_FOM_{p.K-2}.png") # title=f"FOM Adjoint t={p.K-2}"
+    m.plot_3d(Y_ROM_full[:,p.K-2], save_png=True, path=PLOTS+f"Y_ROM_{p.K-2}.png") # title=f"ROM State t={p.K-2}"
+    m.plot_3d(U_ROM_full[:,p.K-2], save_png=True, path=PLOTS+f"U_ROM_{p.K-2}.png") # title=f"ROM Control t={p.K-2}"
+    m.plot_3d(P_ROM_full[:,p.K-2], save_png=True, path=PLOTS+f"P_ROM_{p.K-2}.png") # title=f"ROM Adjoint t={p.K-2}"
+    '''
+    print("\nAll plots saved to " + PLOTS)
 
 print("\n" + "="*60)
 print("SIMULATION COMPLETE")

@@ -210,8 +210,10 @@ class parabolic_model():
         if title is not None:
             ax.set_title(title)
         surf = ax.plot_surface( X, Y, Z, cmap=plt.cm.coolwarm )
-        fig.colorbar(surf)
+        fig.colorbar(surf, shrink=0.75, aspect=10)
+        # fig.colorbar(surf)
+        plt.tight_layout()
         if save_png:
-            plt.savefig( path, dpi=dpi )
+            plt.savefig(path,dpi=600)
         plt.close(fig)
 

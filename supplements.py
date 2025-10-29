@@ -1,5 +1,5 @@
 """
-ES6: supplements
+supplements.py
 Original work by: Andrea Petrocchi (July 2023)
 Modifications and additions by: Thanh-Van Huynh
 """

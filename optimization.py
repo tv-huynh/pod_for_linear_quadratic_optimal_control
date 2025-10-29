@@ -1,5 +1,5 @@
 """
-ES6: optimization
+optimization.py
 Original work by: Andrea Petrocchi (July 2023)
 Modifications and additions by: Thanh-Van Huynh
 """

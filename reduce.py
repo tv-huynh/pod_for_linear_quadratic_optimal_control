@@ -1,6 +1,6 @@
 """
-ES6+POD: reduce
-Original work by: Michael Kartmann (July 2024)
+reduce.py
+Original work by: Michael Kartmann (https://github.com/michikartmann/pod_for_linear_quadratic_optimal_control)
 Modifications and additions by: Thanh-Van Huynh
 """
 import scipy.sparse as sps
@@ -275,7 +275,7 @@ class pod():
         model.update_state_products()
 
         Y_d_proj = U.T @ Y_d # project Y_d into reduced space
-        U_d_proj = U.T @ U_d #project U_d into reduced space
+        U_d_proj = U.T @ U_d # project U_d into reduced space
         U_0_proj = U.T @ U_0 # project U_0 into reduced space
         
         print(f"Projected model: state_dof={model.state_dof}, control_dof={model.control_dof}")

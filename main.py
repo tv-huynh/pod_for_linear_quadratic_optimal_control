@@ -1,5 +1,5 @@
 """
-ES6: main
+main.py
 Original work by: Andrea Petrocchi (July 2023)
 Modifications and additions by: Thanh-Van Huynh
 """
@@ -10,6 +10,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.sparse.linalg import factorized
 import supplements, optimization, reduce
+import warnings
+from scipy.sparse import SparseEfficiencyWarning
+
+# Suppress SparseEfficiencyWarning
+warnings.filterwarnings('ignore', category=SparseEfficiencyWarning)
 
 # Initialize
 beta = 1.e-3 # regularization factor in the cost functional
@@ -89,7 +94,7 @@ if VARY_BETA:
                             print_final=True,
                             plot_grad_convergence=True,
                             save_plot_grad_convergence=GENERATE_PLOTS,
-                            path=PLOTS+"convergence_BB_beta"+str(j),
+                            path=PLOTS+"convergence_beta"+str(j),
                         )
         U_opt_beta = m.vector_to_matrix(u_opt_beta,option="control")
         Y_opt_beta = m.solve_state(U_opt_beta)
@@ -215,7 +220,7 @@ if DO_ERROR_ANALYSIS:
                                     print_final=True,
                                     plot_grad_convergence=True,
                                     save_plot_grad_convergence=GENERATE_PLOTS,
-                                    path=PLOTS+"convergence_BB_ROM_"+str(j)+"snapshots",
+                                    path=PLOTS+"convergence_ROM_"+str(j)+"_snapshots",
                             )
         U_BB_ROM_err = pod_err.model.vector_to_matrix(u_BB_ROM_err,option="control")
 
@@ -265,7 +270,7 @@ if GENERATE_PLOTS:
     m.plot_3d(U_ROM_full[:,p.K-2], save_png=True, path=PLOTS+f"U_ROM_{p.K-2}.png") # title=f"ROM Control t={p.K-2}"
     m.plot_3d(P_ROM_full[:,p.K-2], save_png=True, path=PLOTS+f"P_ROM_{p.K-2}.png") # title=f"ROM Adjoint t={p.K-2}"
     '''
-    print("\nAll plots saved to " + PLOTS)
+    print("All plots saved to " + PLOTS)
 
 print("\n" + "="*60)
 print("SIMULATION COMPLETE")

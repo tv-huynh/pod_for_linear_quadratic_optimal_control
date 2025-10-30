@@ -138,6 +138,7 @@ class optimization_class():
             plt.semilogy(history["error"])
             plt.xlabel("Iteration")
             plt.ylabel(r"$\|\nabla F(u_k)\|_U$")
+            plt.gca().xaxis.set_major_locator(plt.MaxNLocator(integer=True))
             plt.tight_layout()
             # plt.title(r'BB. Convergence of $\|\nabla F(u_k)\|_U$')
             if options['save_plot_grad_convergence']:
@@ -148,6 +149,7 @@ class optimization_class():
             plt.semilogy(history["cost"])
             plt.xlabel("Iteration")
             plt.ylabel(r"$\|F(u_k)\|_U$")
+            plt.gca().xaxis.set_major_locator(plt.MaxNLocator(integer=True))
             plt.tight_layout()
             # plt.title(r'BB. Convergence of $\|F(u_k)\|_U$')
             if options['save_plot_grad_convergence']:

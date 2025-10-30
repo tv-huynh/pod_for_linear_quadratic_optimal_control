@@ -38,7 +38,7 @@ u_d_0 = fenics.interpolate( u_d_exp, m.V ).vector()[:]
 opt.U_d = np.repeat( u_d_0.reshape(-1,1), m.K, axis=1 )
 U_0 = opt.U_d.copy()
 
-VARY_BETA = False
+VARY_BETA = False # takes a lot of time to run, plots are in folder beta_plots
 DO_ERROR_ANALYSIS = True
 GENERATE_PLOTS = True
 
@@ -78,9 +78,10 @@ if VARY_BETA:
     print("SOLVING FULL-ORDER MODEL (FOM) FOR DIFFERENT BETA")
     print("="*60)
 
-    beta_list = [10.**(-j) for j in range(0,8)]
+    number_of_betas = 8
+    beta_list = [10.**(-j) for j in range(0,number_of_betas)]
 
-    for j in range(0,8):
+    for j in range(0,number_of_betas):
         print("\n" + "-"*60)
         print("beta = "+str(j))
         print("-"*60)
@@ -104,6 +105,8 @@ if VARY_BETA:
             m.plot_3d(U_opt_beta[:,p.K-2], save_png=True, path=PLOTS+f"U_FOM_{p.K-2}_beta{j}.png") # title=f"FOM Control t={p.K-2} for $\beta$={beta:.0e}"
             m.plot_3d(Y_opt_beta[:,p.K-2], save_png=True, path=PLOTS+f"Y_FOM_{p.K-2}_beta{j}.png") # title=f"FOM State t={p.K-2} for $\beta$={beta:.0e}"
             m.plot_3d(P_opt_beta[:,p.K-2], save_png=True, path=PLOTS+f"P_FOM_{p.K-2}_beta{j}.png") # title=f"FOM Adjoint t={p.K-2} for $\beta$={beta:.0e}"
+    
+    beta = 1.e-3
 
 #============================================================
 #%% ROM
@@ -252,7 +255,6 @@ if GENERATE_PLOTS:
     print("GENERATING PLOTS")
     print("="*60)
     
-    '''
     for k in range(0, p.K, 10):
         print(f"Plotting time step {k}...")
         m.plot_3d(Y_opt[:,k], save_png=True, path=PLOTS+f"Y_FOM_{k}.png") # title=f"FOM State t={k}"
@@ -269,7 +271,7 @@ if GENERATE_PLOTS:
     m.plot_3d(Y_ROM_full[:,p.K-2], save_png=True, path=PLOTS+f"Y_ROM_{p.K-2}.png") # title=f"ROM State t={p.K-2}"
     m.plot_3d(U_ROM_full[:,p.K-2], save_png=True, path=PLOTS+f"U_ROM_{p.K-2}.png") # title=f"ROM Control t={p.K-2}"
     m.plot_3d(P_ROM_full[:,p.K-2], save_png=True, path=PLOTS+f"P_ROM_{p.K-2}.png") # title=f"ROM Adjoint t={p.K-2}"
-    '''
+    
     print("All plots saved to " + PLOTS)
 
 print("\n" + "="*60)

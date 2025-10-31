@@ -243,7 +243,7 @@ class pod():
             print("l="+str(i)+", err="+str(y))
         
         plt.xticks(x_values)
-        plt.xlabel("number of snapshots $\ell$")
+        plt.xlabel("POD rank $\ell$")
         plt.ylabel(r"$||\bar{u}^{\ell}-\bar{u}||$")
         plt.tight_layout()
         plt.savefig(path + "POD_error.png", dpi=600)

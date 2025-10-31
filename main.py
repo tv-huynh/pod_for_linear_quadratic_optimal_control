@@ -238,11 +238,9 @@ if DO_ERROR_ANALYSIS:
         m_err.update_state_products()
 
         control_error = m_err.eval_L2H_norm(U_diff, space_norm)
-        control_norm = m_err.eval_L2H_norm(U_opt, space_norm)
-        control_rel_error = control_error / control_norm
-        control_error_list.append(control_rel_error)
+        control_error_list.append(control_error)
 
-        print(f"Relative control error: {control_rel_error:.6e}")
+        print(f"Control error: {control_error:.6e}")
 
     if GENERATE_PLOTS:
         pod.plot_error(control_error_list,path=PLOTS)

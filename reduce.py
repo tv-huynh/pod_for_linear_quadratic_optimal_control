@@ -218,7 +218,7 @@ class pod():
         x_values = np.arange(1,l+1)
         plt.figure()
         # plt.title("POD Eigenvalues decay")
-        plt.plot(x_values,self.POD_values,marker="o")
+        plt.semilogy(x_values,self.POD_values,marker="o")
         print("\nPOD eigenvalues lambda_i:")
 
         for i, x in enumerate(x_values):
@@ -235,7 +235,7 @@ class pod():
         l = len(error_list)
         x_values = np.arange(1, l+1)
         plt.figure()
-        plt.plot(x_values, error_list, marker="o")
+        plt.semilogy(x_values, error_list, marker="o")
         print("\nControl error || u_POD - u_FE || depending on l:")
 
         for i, x in enumerate(x_values):

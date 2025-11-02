@@ -38,7 +38,7 @@ u_d_0 = fenics.interpolate( u_d_exp, m.V ).vector()[:]
 opt.U_d = np.repeat( u_d_0.reshape(-1,1), m.K, axis=1 )
 U_0 = opt.U_d.copy()
 
-VARY_BETA = False # takes a lot of time to run, plots are in folder beta_plots
+VARY_BETA = False
 DO_ERROR_ANALYSIS = True
 GENERATE_PLOTS = True
 
@@ -78,7 +78,7 @@ if VARY_BETA:
     print("SOLVING FULL-ORDER MODEL (FOM) FOR DIFFERENT BETA")
     print("="*60)
 
-    number_of_betas = 8
+    number_of_betas = 5
     beta_list = [10.**(-j) for j in range(0,number_of_betas)]
 
     for j in range(0,number_of_betas):

@@ -1,14 +1,11 @@
 """
 optimization.py
 Original work by: Andrea Petrocchi (July 2023)
-Modifications and additions by: Thanh-Van Huynh
+Modifications and additions by: Thanh-Van Huynh -> Plotting
 """
 
-import pdb
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.sparse import identity, csc_matrix, block_diag
-from scipy.sparse.linalg import spsolve
 from time import time
 
 class optimization_class():

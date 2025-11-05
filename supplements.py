@@ -1,16 +1,15 @@
 """
 supplements.py
 Original work by: Andrea Petrocchi (July 2023)
-Modifications and additions by: Thanh-Van Huynh
+Modifications and additions by: Thanh-Van Huynh -> Plotting
 """
 
-import os, shutil, pdb
+import os, shutil
 import fenics
 import numpy as np
-from scipy.sparse import csc_matrix, csr_matrix, save_npz
-from scipy.sparse.linalg import spsolve, factorized
+from scipy.sparse import csc_matrix
+from scipy.sparse.linalg import factorized
 import matplotlib.pyplot as plt
-import time
 
 
 #%% analytical problem
@@ -216,4 +215,3 @@ class parabolic_model():
         if save_png:
             plt.savefig(path,dpi=600)
         plt.close(fig)
-

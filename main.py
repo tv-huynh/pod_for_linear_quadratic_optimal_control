@@ -1,22 +1,23 @@
 """
 main.py
-Original work by: Andrea Petrocchi (July 2023)
-Modifications and additions by: Thanh-Van Huynh
+Original work by: Andrea Petrocchi (July 2023) -> Initializing, solving FOM
+Modifications and additions by: Thanh-Van Huynh -> Varying betas, solving ROM, doing error analysis
 """
 
-import os
+import warnings
 import fenics
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.sparse.linalg import factorized
-import supplements, optimization, reduce
-import warnings
 from scipy.sparse import SparseEfficiencyWarning
+import supplements, optimization, reduce
 
 # Suppress SparseEfficiencyWarning
 warnings.filterwarnings('ignore', category=SparseEfficiencyWarning)
 
 # Initialize
+VARY_BETA = False
+DO_ERROR_ANALYSIS = True
+GENERATE_PLOTS = True
+
 beta = 1.e-3 # regularization factor in the cost functional
 tol = 1.e-7 # tolerance for the optimization algorithm
 
@@ -38,13 +39,9 @@ u_d_0 = fenics.interpolate( u_d_exp, m.V ).vector()[:]
 opt.U_d = np.repeat( u_d_0.reshape(-1,1), m.K, axis=1 )
 U_0 = opt.U_d.copy()
 
-VARY_BETA = False
-DO_ERROR_ANALYSIS = True
-GENERATE_PLOTS = True
-
 if GENERATE_PLOTS:
-    PLOTS = "plots/"; m.format_folder(PLOTS)
-
+    PLOTS = "plots/"
+    m.format_folder(PLOTS)
     
 #============================================================
 #%% FOM

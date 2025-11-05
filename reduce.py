@@ -1,7 +1,7 @@
 """
 reduce.py
-Original work by: Michael Kartmann (https://github.com/michikartmann/pod_for_linear_quadratic_optimal_control)
-Modifications and additions by: Thanh-Van Huynh
+Original work by: Michael Kartmann (https://github.com/michikartmann/pod_for_linear_quadratic_optimal_control) -> Class structure, pod_basis
+Modifications and additions by: Thanh-Van Huynh -> Plotting and projection functions
 """
 import scipy.sparse as sps
 from scipy import linalg

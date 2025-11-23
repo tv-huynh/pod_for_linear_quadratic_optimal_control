@@ -13,6 +13,7 @@ from time import perf_counter
 class pod():
     def __init__(self, model, space_product="L2"):
         self.model = model
+        self.space_norm = space_product
 
         if space_product == "L2":
             S = model.M
@@ -133,7 +134,7 @@ class pod():
 
             # Normalize each POD basis vector
             for i in range(POD_Basis.shape[1]):
-                POD_Basis[:, i] = POD_Basis[:, i] / np.linalg.norm(POD_Basis[:, i])
+                POD_Basis[:, i] = POD_Basis[:, i] / self.model.eval_L2H_norm(POD_Basis[:, i],space_norm=self.space_norm,spatial_only=True)
         
         elif flag == 1: 
             # Compute eigenvalues of YY' with size (n_x, n_x):
@@ -169,7 +170,7 @@ class pod():
             
             # Normalize each POD basis vector
             for i in range(POD_Basis.shape[1]):
-                POD_Basis[:, i] = POD_Basis[:, i] / np.linalg.norm(POD_Basis[:, i])
+                POD_Basis[:, i] = POD_Basis[:, i] / self.model.eval_L2H_norm(POD_Basis[:, i],space_norm=self.space_norm,spatial_only=True)
 
         elif flag == 2: 
             # Method of snapshots: eigs of Y'Y with size (n_t,n_t)
@@ -202,13 +203,14 @@ class pod():
 
             # Normalize each POD basis vector
             for i in range(POD_Basis.shape[1]):
-                POD_Basis[:, i] = POD_Basis[:, i] / np.linalg.norm(POD_Basis[:, i])
+                POD_Basis[:, i] = POD_Basis[:, i] / self.model.eval_L2H_norm(POD_Basis[:, i],space_norm=self.space_norm,spatial_only=True)
             
         else:
             assert 0, 'wrong flag input ...'
             
         self.POD_Basis = POD_Basis
         self.POD_values = POD_values
+        self.POD_values_normalized = normalized_values[indices]
         self.Singular_values = np.sqrt(POD_values)
         
         return POD_Basis, POD_values
@@ -219,35 +221,55 @@ class pod():
         plt.figure()
         # plt.title("POD Eigenvalues decay")
         plt.semilogy(x_values,self.POD_values,marker="o")
-        print("\nPOD eigenvalues lambda_i:")
-
-        for i, x in enumerate(x_values):
-            y = self.POD_values[i]
-            print("lambda_"+str(i)+"="+str(y))
-
         plt.ylabel(r"$\lambda_i$")
         plt.xticks(x_values)
         plt.tight_layout()
         plt.savefig(path+"POD_eigenvalues_decay.png",dpi=600)
         plt.close()
 
-    def plot_error(self, error_list, path):
+        plt.figure()
+        # plt.title("POD Eigenvalues decay (normalized)")
+        plt.semilogy(x_values,self.POD_values_normalized,marker="o")
+        plt.ylabel(r"$\lambda_i$")
+        plt.xticks(x_values)
+        plt.tight_layout()
+        plt.savefig(path+"POD_eigenvalues_decay_normalized.png",dpi=600)
+        plt.close()
+
+        print("\nPOD eigenvalues lambda_i:")
+        for i, x in enumerate(x_values):
+            y = self.POD_values[i]
+            print("lambda_"+str(i)+"="+str(y))
+        print("\nPOD eigenvalues lambda_i normalized w.r.t. the largest eigenvalue:")
+        for i, x in enumerate(x_values):
+            y = self.POD_values_normalized[i]
+            print("lambda_"+str(i)+"="+str(y))
+
+    def plot_error(self, error_list, error_type, path):
         l = len(error_list)
         x_values = np.arange(1, l+1)
         plt.figure()
         plt.semilogy(x_values, error_list, marker="o")
-        print("\nControl error || u_POD - u_FE || depending on l:")
+        plt.xticks(x_values)
+        plt.xlabel("POD rank $\ell$")
 
+        if error_type == "control":
+            print("\nControl error || u_POD - u_FE || depending on l:")
+            plt.ylabel(r"$||\bar{u}^{\ell}-\bar{u}||$")
+        elif error_type == "state":
+            print("\nState error || y_POD - y_FE || depending on l:")
+            plt.ylabel(r"$||\bar{y}^{\ell}-\bar{y}||$")
+        elif error_type == "adjoint":
+            print("\nAdjoint error || p_POD - p_FE || depending on l:")
+            plt.ylabel(r"$||\bar{p}^{\ell}-\bar{p}||$")
+
+        plt.tight_layout()
+        plt.savefig(path + "POD_"+error_type+"_error.png", dpi=600)
+        plt.close()
+        
         for i, x in enumerate(x_values):
             y = error_list[i]
             print("l="+str(i)+", err="+str(y))
-        
-        plt.xticks(x_values)
-        plt.xlabel("POD rank $\ell$")
-        plt.ylabel(r"$||\bar{u}^{\ell}-\bar{u}||$")
-        plt.tight_layout()
-        plt.savefig(path + "POD_error.png", dpi=600)
-        plt.close()
 
 
     def project(self, U, Y_d, U_d, U_0, V=None):

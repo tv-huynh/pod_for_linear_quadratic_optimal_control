@@ -14,12 +14,26 @@ import supplements, optimization, reduce
 warnings.filterwarnings('ignore', category=SparseEfficiencyWarning)
 
 # Initialize
+SOLVE_FOM = True
+SOLVE_ROM = True
 VARY_BETA = False
-DO_ERROR_ANALYSIS = True
+DO_ERROR_ANALYSIS = False
 GENERATE_PLOTS = True
+
+space_norm = "L2"
+l = 20
+optimal_snapshots = True
+if optimal_snapshots == True:
+    file_name = "optimalSnapshots"
+else:
+    file_name = "initalSnapshots"
 
 beta = 1.e-3 # regularization factor in the cost functional
 tol = 1.e-7 # tolerance for the optimization algorithm
+
+#============================================================
+#%% Build Model
+#============================================================
 
 p = supplements.analytical_problem()
 p.x1a = 0.0; p.x1b = 1.0;   p.x2a = 0.0; p.x2b = 1.0
@@ -40,32 +54,105 @@ opt.U_d = np.repeat( u_d_0.reshape(-1,1), m.K, axis=1 )
 U_0 = opt.U_d.copy()
 
 if GENERATE_PLOTS:
-    PLOTS = "plots/"
+    PLOTS = "plots_"+file_name+"/"
     m.format_folder(PLOTS)
     
 #============================================================
 #%% FOM
 #============================================================
-# Solve FOM
-print("="*60)
-print("SOLVING FULL-ORDER MODEL (FOM)")
-print("="*60)
+if SOLVE_FOM:
+    # Solve FOM
+    print("="*60)
+    print("SOLVING FULL-ORDER MODEL (FOM)")
+    print("="*60)
 
-u_opt, history = opt.solve( U_0, "BB",
-                        print_info=True,
-                        print_final=True,
-                        plot_grad_convergence=True,
-                        save_plot_grad_convergence=GENERATE_PLOTS,
-                        path=PLOTS+"convergence_FOM",
-                    )
-U_opt = m.vector_to_matrix(u_opt,option="control")
-Y_opt = m.solve_state(U_opt)
-P_opt = m.solve_adjoint(opt.Y_d-Y_opt)
+    u_opt, history = opt.solve( U_0, "BB",
+                            print_info=True,
+                            print_final=True,
+                            plot_grad_convergence=True,
+                            save_plot_grad_convergence=GENERATE_PLOTS,
+                            path=PLOTS+"convergence_FOM",
+                        )
+    U_opt = m.vector_to_matrix(u_opt,option="control")
+    Y_opt = m.solve_state(U_opt)
+    P_opt = m.solve_adjoint(opt.Y_d-Y_opt)
 
-print(f"\nFOM Results:")
-print(f"  State dimension: {Y_opt.shape[0]}")
-print(f"  Control dimension: {U_opt.shape[0]}")
-print(f"  Time steps: {Y_opt.shape[1]}")
+    print(f"\nFOM Results:")
+    print(f"  State dimension: {Y_opt.shape[0]}")
+    print(f"  Control dimension: {U_opt.shape[0]}")
+    print(f"  Time steps: {Y_opt.shape[1]}")
+
+#============================================================
+#%% ROM
+#============================================================
+if SOLVE_ROM:
+    #%% Construct ROM out of FOM snapshots
+    print("\n" + "="*60)
+    print("CONSTRUCTING REDUCED-ORDER MODEL (ROM)")
+    print("="*60)
+
+    # Get snapshots
+    if optimal_snapshots == True: # train with optimal snapshots
+        snapshots = [Y_opt, P_opt]
+        print("Using optimal FOM snapshots for POD basis")
+    else: # train with initial snapshots
+
+        snapshots = m.get_snapshots(U_0,opt.Y_d)
+        print("Using initial snapshots for POD basis")
+    print("Doing POD with l="+str(l)+" POD basis vectors")
+
+    # Do POD
+    pod = reduce.pod(m,space_norm)
+    POD_Basis, POD_values = pod.pod_basis(snapshots,l)
+    Y_d_proj, U_d_proj, U_0_ROM = pod.project(POD_Basis,opt.Y_d,opt.U_d,U_0)
+    opt_ROM = optimization.optimization_class(pod.model,beta,tol)
+    opt_ROM.Y_d = Y_d_proj
+    opt_ROM.U_d = U_d_proj
+
+    print(f"  Reduced Y_d shape: {opt_ROM.Y_d.shape}")
+    print(f"  Reduced U_d shape: {opt_ROM.U_d.shape}")
+    print(f"Initial guess U_0_ROM shape: {U_0_ROM.shape}")
+
+    # Check energy captured
+    total_energy = np.sum(POD_values)
+    energy_l = np.sum(POD_values[:len(POD_values)])
+    print(f"\nPOD basis captures {energy_l/total_energy*100:.2f}% of total energy")
+
+    # Solve ROM 
+    print("\n" + "="*60)
+    print("SOLVING REDUCED-ORDER MODEL (ROM)")
+    print("="*60)
+
+    u_ROM, history_ROM = opt_ROM.solve( U_0_ROM, "BB",
+                                print_info=True,
+                                print_final=True,
+                                plot_grad_convergence=True,
+                                save_plot_grad_convergence=GENERATE_PLOTS,
+                                path=PLOTS+"convergence_ROM",
+                        )
+    U_ROM = pod.model.vector_to_matrix(u_ROM,option="control")
+    Y_ROM = pod.model.solve_state(U_ROM)
+    P_ROM = pod.model.solve_adjoint(opt_ROM.Y_d - Y_ROM)
+
+    # print(f"\nROM Results (before recovery):")
+    # print(f"  Reduced state dimension: {Y_ROM.shape[0]}")
+    # print(f"  Full control dimension: {U_ROM.shape[0]}")
+    # print(f"  Time steps: {Y_ROM.shape[1]}")
+
+    # Recover FOM solution from ROM
+    U_ROM_full = POD_Basis @ U_ROM  # Project control back to full space
+    Y_ROM_full = POD_Basis @ Y_ROM  # Project state back to full space
+    P_ROM_full = POD_Basis @ P_ROM  # Project adjoint back to full space
+
+    # print(f"\nROM Results (after recovery to full space):")
+    # print(f"  State dimension: {Y_ROM_full.shape[0]}")
+    # print(f"  Control dimension: {U_ROM_full.shape[0]}")
+    # print(f"  Adjoint dimension: {P_ROM_full.shape[0]}")
+
+    print(f"\nFOM optimization time: {history['time']:.3f} seconds")
+    print(f"ROM optimization time: {history_ROM['time']:.3f} seconds")
+    print(f"Speedup factor: {history['time']/history_ROM['time']:.2f}x")
+    pod.plot_pod_values(path=PLOTS)
 
 #============================================================
 #%% FOM: different beta
@@ -106,83 +193,6 @@ if VARY_BETA:
     beta = 1.e-3
 
 #============================================================
-#%% ROM
-#============================================================
-#%% Construct ROM out of FOM snapshots
-print("\n" + "="*60)
-print("CONSTRUCTING REDUCED-ORDER MODEL (ROM)")
-print("="*60)
-
-l = 20
-optimal_snapshots = True
-if optimal_snapshots == True:
-    file_name = "optimalSnapshots"
-else:
-    file_name = "initalSnapshots"
-
-# Get snapshots
-if optimal_snapshots == True: # train with optimal snapshots
-    snapshots = [Y_opt, P_opt]
-    print("Using optimal FOM snapshots for POD basis")
-else: # train with initial snapshots
-    snapshots = [m.get_snapshots(U_0,opt.Y_d)]
-    print("Using initial snapshots for POD basis")
-print("Doing POD with l="+str(l)+" POD basis vectors")
-
-# Do POD
-pod = reduce.pod(m)
-POD_Basis, POD_values = pod.pod_basis(snapshots,l)
-Y_d_proj, U_d_proj, U_0_ROM = pod.project(POD_Basis,opt.Y_d,opt.U_d,U_0)
-opt_ROM = optimization.optimization_class(pod.model,beta,tol)
-opt_ROM.Y_d = Y_d_proj
-opt_ROM.U_d = U_d_proj
-
-print(f"  Reduced Y_d shape: {opt_ROM.Y_d.shape}")
-print(f"  Reduced U_d shape: {opt_ROM.U_d.shape}")
-print(f"Initial guess U_0_ROM shape: {U_0_ROM.shape}")
-
-# Check energy captured
-total_energy = np.sum(POD_values)
-energy_l = np.sum(POD_values[:len(POD_values)])
-print(f"\nPOD basis captures {energy_l/total_energy*100:.2f}% of total energy")
-
-# Solve ROM 
-print("\n" + "="*60)
-print("SOLVING REDUCED-ORDER MODEL (ROM)")
-print("="*60)
-
-u_ROM, history_ROM = opt_ROM.solve( U_0_ROM, "BB",
-                            print_info=True,
-                            print_final=True,
-                            plot_grad_convergence=True,
-                            save_plot_grad_convergence=GENERATE_PLOTS,
-                            path=PLOTS+"convergence_ROM",
-                    )
-U_ROM = pod.model.vector_to_matrix(u_ROM,option="control")
-Y_ROM = pod.model.solve_state(U_ROM)
-P_ROM = pod.model.solve_adjoint(opt_ROM.Y_d - Y_ROM)
-
-# print(f"\nROM Results (before recovery):")
-# print(f"  Reduced state dimension: {Y_ROM.shape[0]}")
-# print(f"  Full control dimension: {U_ROM.shape[0]}")
-# print(f"  Time steps: {Y_ROM.shape[1]}")
-
-# Recover FOM solution from ROM
-U_ROM_full = POD_Basis @ U_ROM  # Project control back to full space
-Y_ROM_full = POD_Basis @ Y_ROM  # Project state back to full space
-P_ROM_full = POD_Basis @ P_ROM  # Project adjoint back to full space
-
-# print(f"\nROM Results (after recovery to full space):")
-# print(f"  State dimension: {Y_ROM_full.shape[0]}")
-# print(f"  Control dimension: {U_ROM_full.shape[0]}")
-# print(f"  Adjoint dimension: {P_ROM_full.shape[0]}")
-
-print(f"\nFOM optimization time: {history['time']:.3f} seconds")
-print(f"ROM optimization time: {history_ROM['time']:.3f} seconds")
-print(f"Speedup factor: {history['time']/history_ROM['time']:.2f}x")
-pod.plot_pod_values(path=PLOTS)
-
-#============================================================
 #%% Error analysis
 #============================================================
 #%% Compute errors
@@ -191,8 +201,9 @@ if DO_ERROR_ANALYSIS:
     print("ERROR ANALYSIS")
     print("="*60)
 
-    space_norm = "L2"
     control_error_list = []
+    state_error_list = []
+    adjoint_error_list = []
 
     for j in range(1,pod.basissize+1):
         print("\n" + "-"*60)
@@ -215,36 +226,52 @@ if DO_ERROR_ANALYSIS:
         # Solve ROM 
         print("\nSOLVING REDUCED-ORDER MODEL (ROM)")
 
-        u_BB_ROM_err, _ = opt_ROM_err.solve( U_0_ROM_err, "BB",
+        u_ROM_err, _ = opt_ROM_err.solve( U_0_ROM_err, "BB",
                                     print_info=True,
                                     print_final=True,
                                     plot_grad_convergence=True,
                                     save_plot_grad_convergence=GENERATE_PLOTS,
                                     path=PLOTS+"convergence_ROM_"+str(j)+"_snapshots",
                             )
-        U_BB_ROM_err = pod_err.model.vector_to_matrix(u_BB_ROM_err,option="control")
+        U_ROM_err = pod_err.model.vector_to_matrix(u_ROM_err,option="control")
+        Y_ROM_err = pod_err.model.solve_state(U_ROM_err)
+        P_ROM_err = pod_err.model.solve_adjoint(opt_ROM_err.Y_d - Y_ROM_err)
 
         # Recover FOM solution from ROM
-        U_BB_ROM_full_err = POD_basis_err @ U_BB_ROM_err  # Project control back to full space
+        U_ROM_full_err = POD_basis_err @ U_ROM_err  # Project control back to full space
+        Y_ROM_full_err = POD_basis_err @ Y_ROM_err
+        P_ROM_full_err = POD_basis_err @ P_ROM_err
 
         # Compute error using FOM matrices
-        U_diff = U_BB_ROM_full_err - U_opt
+        U_diff = U_ROM_full_err - U_opt
+        Y_diff = Y_ROM_full_err - Y_opt
+        P_diff = P_ROM_full_err - P_opt
 
         m_err.M = m_err.M_FOM
         m_err.A = m_err.A_FOM
         m_err.update_state_products()
 
-        control_error = m_err.eval_L2H_norm(U_diff, space_norm)
+        control_error = m_err.eval_L2H_norm(U_diff, space_norm="control")
+        state_error = m_err.eval_L2H_norm(Y_diff, space_norm)
+        adjoint_error = m_err.eval_L2H_norm(P_diff, space_norm)
+
         control_error_list.append(control_error)
+        state_error_list.append(state_error)
+        adjoint_error_list.append(adjoint_error)
 
         print(f"Control error: {control_error:.6e}")
+        print(f"State error: {state_error:.6e}")
+        print(f"Adjoint error: {adjoint_error:.6e}")
 
     if GENERATE_PLOTS:
-        pod.plot_error(control_error_list,path=PLOTS)
+        pod.plot_error(control_error_list,error_type="control",path=PLOTS)
+        pod.plot_error(state_error_list,error_type="state",path=PLOTS)
+        pod.plot_error(adjoint_error_list,error_type="adjoint",path=PLOTS)
 
 #============================================================
 #%% Plots
 #============================================================
+GENERATE_PLOTS = False
 if GENERATE_PLOTS:
     print("\n" + "="*60)
     print("GENERATING PLOTS")

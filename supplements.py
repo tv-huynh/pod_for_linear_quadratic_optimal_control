@@ -58,8 +58,8 @@ class parabolic_model():
         Nx = int(l1/i) + 1; self.Nx = Nx
         Ny = int(l2/i) + 1; self.Ny = Ny
         self.mesh = fenics.RectangleMesh( self.p.SE, self.p.NW, Nx, Ny )
-        self.h = self.mesh.hmax()
-        #print("Check maximum cell size: {}".format(self.mesh.hmax()))
+        print("Mesh size h="+str(self.p.h))
+        print("Degrees of freedom N="+str(Nx))
         if self.mesh.hmax() > self.p.h-1.e-20:
             breakpoint()
         # Plot mesh
@@ -128,8 +128,22 @@ class parabolic_model():
             P = np.concatenate( (p.reshape(-1,1),P), axis=1 )
         return P
     
-    def eval_L2H_prod( self, v, w, space_norm="L2"):
-        # Ensure v and w are matrices
+    def eval_L2H_prod( self, v, w, space_norm="L2",spatial_only=False):
+        # Set gramian
+        if space_norm == "control" or space_norm == "L2":
+            S = self.M
+        elif space_norm == "H10":
+            S = self.A
+        elif space_norm == "H1":
+            S = self.M + self.A
+        else:
+            raise ValueError("Unknown space_norm")
+        
+        # If spatial_only, treat inputs as spatial vectors only (no reshaping)
+        if spatial_only:
+            return np.vdot(v, S.dot(w))
+        
+        # Otherwise treat as space-time vectors and reshape
         if len(v.shape) == 1:
             if space_norm == "control":
                 v = self.vector_to_matrix(v, option="control")
@@ -140,22 +154,12 @@ class parabolic_model():
                 w = self.vector_to_matrix(w, option="control")
             else:
                 w = self.vector_to_matrix(w, option="state")
-        
-        # Use mass matrix for ALL norms (including control)
-        if space_norm == "control" or space_norm == "L2":
-            S = self.M
-        elif space_norm == "H10":
-            S = self.A
-        elif space_norm == "H1":
-            S = self.M + self.A
-        else:
-            raise ValueError("Unknown space_norm")
 
         return np.vdot(self.D, np.diag(v.T.dot(S.dot(w))))
 
     
-    def eval_L2H_norm( self, v ,space_norm="L2"):
-        return np.sqrt( self.eval_L2H_prod(v,v,space_norm) )
+    def eval_L2H_norm( self, v ,space_norm="L2",spatial_only=False):
+        return np.sqrt( self.eval_L2H_prod(v,v,space_norm,spatial_only) )
 
     def apply_BC_to_matrix( self, M ):
         if self.is_reduced: # don't apply BC to reduced matrices
@@ -176,7 +180,7 @@ class parabolic_model():
         U = self.vector_to_matrix(u,option="control")
         Y = self.solve_state(U)
         P = self.solve_adjoint(Y_d-Y)
-        return Y, P
+        return [Y, P]
         
 
     #%% PLOTS AND FIGURES

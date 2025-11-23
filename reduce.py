@@ -245,7 +245,7 @@ class pod():
             y = self.POD_values_normalized[i]
             print("lambda_"+str(i)+"="+str(y))
 
-    def plot_error(self, error_list, error_type, path):
+    def plot_error(self, error_list, error_type, path,beta=""):
         l = len(error_list)
         x_values = np.arange(1, l+1)
         plt.figure()
@@ -264,7 +264,7 @@ class pod():
             plt.ylabel(r"$||\bar{p}^{\ell}-\bar{p}||$")
 
         plt.tight_layout()
-        plt.savefig(path + "POD_"+error_type+"_error.png", dpi=600)
+        plt.savefig(path + "POD_"+error_type+"_error_beta"+str(beta)+".png", dpi=600)
         plt.close()
         
         for i, x in enumerate(x_values):

@@ -16,8 +16,9 @@ warnings.filterwarnings('ignore', category=SparseEfficiencyWarning)
 # Initialize
 SOLVE_FOM = True
 SOLVE_ROM = True
-VARY_BETA = False
-DO_ERROR_ANALYSIS = False
+VARY_BETA = True
+DO_ERROR_ANALYSIS = True
+DO_ERROR_ANALYSIS_DIFFERENT_BETAS = False
 GENERATE_PLOTS = True
 
 space_norm = "L2"
@@ -155,7 +156,7 @@ if SOLVE_ROM:
     pod.plot_pod_values(path=PLOTS)
 
 #============================================================
-#%% FOM: different beta
+#%% FOM: different betas
 #============================================================
 if VARY_BETA:
     print("\n" + "="*60)
@@ -165,14 +166,17 @@ if VARY_BETA:
     number_of_betas = 5
     beta_list = [10.**(-j) for j in range(0,number_of_betas)]
 
+    m_beta = supplements.parabolic_model(p)
+    m_beta.build_problem()
+
     for j in range(0,number_of_betas):
         print("\n" + "-"*60)
         print("beta = "+str(j))
         print("-"*60)
         beta = beta_list[j]
-        opt_beta = optimization.optimization_class(m,beta,tol)
-        opt_beta.Y_d = np.repeat( y_d_0.reshape(-1,1), m.K, axis=1 )
-        opt_beta.U_d = np.repeat( u_d_0.reshape(-1,1), m.K, axis=1 )
+        opt_beta = optimization.optimization_class(m_beta,beta,tol)
+        opt_beta.Y_d = np.repeat( y_d_0.reshape(-1,1), m_beta.K, axis=1 )
+        opt_beta.U_d = np.repeat( u_d_0.reshape(-1,1), m_beta.K, axis=1 )
 
         u_opt_beta, history_beta = opt_beta.solve( U_0, "BB",
                             print_info=True,
@@ -181,14 +185,14 @@ if VARY_BETA:
                             save_plot_grad_convergence=GENERATE_PLOTS,
                             path=PLOTS+"convergence_beta"+str(j),
                         )
-        U_opt_beta = m.vector_to_matrix(u_opt_beta,option="control")
-        Y_opt_beta = m.solve_state(U_opt_beta)
-        P_opt_beta = m.solve_adjoint(opt_beta.Y_d-Y_opt_beta)
+        U_opt_beta = m_beta.vector_to_matrix(u_opt_beta,option="control")
+        Y_opt_beta = m_beta.solve_state(U_opt_beta)
+        P_opt_beta = m_beta.solve_adjoint(opt_beta.Y_d-Y_opt_beta)
 
         if GENERATE_PLOTS: # final time step
-            m.plot_3d(U_opt_beta[:,p.K-2], save_png=True, path=PLOTS+f"U_FOM_{p.K-2}_beta{j}.png") # title=f"FOM Control t={p.K-2} for $\beta$={beta:.0e}"
-            m.plot_3d(Y_opt_beta[:,p.K-2], save_png=True, path=PLOTS+f"Y_FOM_{p.K-2}_beta{j}.png") # title=f"FOM State t={p.K-2} for $\beta$={beta:.0e}"
-            m.plot_3d(P_opt_beta[:,p.K-2], save_png=True, path=PLOTS+f"P_FOM_{p.K-2}_beta{j}.png") # title=f"FOM Adjoint t={p.K-2} for $\beta$={beta:.0e}"
+            m_beta.plot_3d(U_opt_beta[:,p.K-2], save_png=True, path=PLOTS+f"U_FOM_{p.K-2}_beta{j}.png") # title=f"FOM Control t={p.K-2} for $\beta$={beta:.0e}"
+            m_beta.plot_3d(Y_opt_beta[:,p.K-2], save_png=True, path=PLOTS+f"Y_FOM_{p.K-2}_beta{j}.png") # title=f"FOM State t={p.K-2} for $\beta$={beta:.0e}"
+            m_beta.plot_3d(P_opt_beta[:,p.K-2], save_png=True, path=PLOTS+f"P_FOM_{p.K-2}_beta{j}.png") # title=f"FOM Adjoint t={p.K-2} for $\beta$={beta:.0e}"
     
     beta = 1.e-3
 
@@ -267,6 +271,104 @@ if DO_ERROR_ANALYSIS:
         pod.plot_error(control_error_list,error_type="control",path=PLOTS)
         pod.plot_error(state_error_list,error_type="state",path=PLOTS)
         pod.plot_error(adjoint_error_list,error_type="adjoint",path=PLOTS)
+
+#============================================================
+#%% Do error analysis for different betas
+#============================================================
+if DO_ERROR_ANALYSIS_DIFFERENT_BETAS:
+    print("\n" + "="*60)
+    print("ERROR ANALYSIS FOR DIFFERENT BETA")
+    print("="*60)
+
+    number_of_betas = 5
+    beta_list = [10.**(-j) for j in range(0,number_of_betas)]
+
+    for j in range(0,number_of_betas):
+        print("\n" + "-"*60)
+        print("beta = "+str(j))
+        print("-"*60)
+        beta = beta_list[j]
+        opt_beta = optimization.optimization_class(m,beta,tol)
+        opt_beta.Y_d = np.repeat( y_d_0.reshape(-1,1), m.K, axis=1 )
+        opt_beta.U_d = np.repeat( u_d_0.reshape(-1,1), m.K, axis=1 )
+
+        u_opt_beta, history_beta = opt_beta.solve( U_0, "BB",
+                            print_info=True,
+                            print_final=True,
+                            plot_grad_convergence=True,
+                            save_plot_grad_convergence=GENERATE_PLOTS,
+                            path=PLOTS+"convergence_beta"+str(j),
+                        )
+        U_opt_beta = m.vector_to_matrix(u_opt_beta,option="control")
+        Y_opt_beta = m.solve_state(U_opt_beta)
+        P_opt_beta = m.solve_adjoint(opt_beta.Y_d-Y_opt_beta)
+
+        control_error_list = []
+        state_error_list = []
+        adjoint_error_list = []
+
+        for j in range(1,pod.basissize+1):
+            print("\n" + "-"*60)
+            print("Number of snapshots l="+str(j))
+            print("-"*60)
+            m_err = supplements.parabolic_model(p)
+            m_err.build_problem()
+            pod_err = reduce.pod(m_err)
+
+            POD_basis_err, POD_values_err = pod_err.pod_basis(snapshots,j)
+            Y_d_err, U_d_err, U_0_ROM_err= pod_err.project(POD_basis_err,opt.Y_d,opt.U_d,U_0)
+            opt_ROM_err = optimization.optimization_class(pod_err.model,beta,tol)
+            opt_ROM_err.Y_d = Y_d_err
+            opt_ROM_err.U_d = U_d_err
+
+            # print(f"  Reduced Y_d shape: {opt_ROM_err.Y_d.shape}")
+            # print(f"  Reduced U_d shape: {opt_ROM_err.U_d.shape}")
+            # print(f"Initial guess U_0_ROM shape: {U_0_ROM_err.shape}")
+
+            # Solve ROM 
+            print("\nSOLVING REDUCED-ORDER MODEL (ROM)")
+
+            u_ROM_err, _ = opt_ROM_err.solve( U_0_ROM_err, "BB",
+                                        print_info=True,
+                                        print_final=True,
+                                        plot_grad_convergence=True,
+                                        save_plot_grad_convergence=GENERATE_PLOTS,
+                                        path=PLOTS+"convergence_ROM_"+str(j)+"_snapshots",
+                                )
+            U_ROM_err = pod_err.model.vector_to_matrix(u_ROM_err,option="control")
+            Y_ROM_err = pod_err.model.solve_state(U_ROM_err)
+            P_ROM_err = pod_err.model.solve_adjoint(opt_ROM_err.Y_d - Y_ROM_err)
+
+            # Recover FOM solution from ROM
+            U_ROM_full_err = POD_basis_err @ U_ROM_err  # Project control back to full space
+            Y_ROM_full_err = POD_basis_err @ Y_ROM_err
+            P_ROM_full_err = POD_basis_err @ P_ROM_err
+
+            # Compute error using FOM matrices
+            U_diff = U_ROM_full_err - U_opt_beta
+            Y_diff = Y_ROM_full_err - Y_opt_beta
+            P_diff = P_ROM_full_err - P_opt_beta
+
+            m_err.M = m_err.M_FOM
+            m_err.A = m_err.A_FOM
+            m_err.update_state_products()
+
+            control_error = m_err.eval_L2H_norm(U_diff, space_norm="control")
+            state_error = m_err.eval_L2H_norm(Y_diff, space_norm)
+            adjoint_error = m_err.eval_L2H_norm(P_diff, space_norm)
+
+            control_error_list.append(control_error)
+            state_error_list.append(state_error)
+            adjoint_error_list.append(adjoint_error)
+
+            print(f"Control error: {control_error:.6e}")
+            print(f"State error: {state_error:.6e}")
+            print(f"Adjoint error: {adjoint_error:.6e}")
+
+        if GENERATE_PLOTS:
+            pod.plot_error(control_error_list,error_type="control",path=PLOTS,beta=str(beta))
+            pod.plot_error(state_error_list,error_type="state",path=PLOTS,beta=str(beta))
+            pod.plot_error(adjoint_error_list,error_type="adjoint",path=PLOTS,beta=str(beta))
 
 #============================================================
 #%% Plots

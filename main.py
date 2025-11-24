@@ -16,14 +16,14 @@ warnings.filterwarnings('ignore', category=SparseEfficiencyWarning)
 # Initialize
 SOLVE_FOM = True
 SOLVE_ROM = True
-VARY_BETA = True
-DO_ERROR_ANALYSIS = True
-DO_ERROR_ANALYSIS_DIFFERENT_BETAS = False
+VARY_BETA = False
+DO_ERROR_ANALYSIS = False
+DO_ERROR_ANALYSIS_DIFFERENT_BETAS = True
 GENERATE_PLOTS = True
 
 space_norm = "L2"
 l = 20
-optimal_snapshots = True
+optimal_snapshots = False
 if optimal_snapshots == True:
     file_name = "optimalSnapshots"
 else:
@@ -135,20 +135,20 @@ if SOLVE_ROM:
     Y_ROM = pod.model.solve_state(U_ROM)
     P_ROM = pod.model.solve_adjoint(opt_ROM.Y_d - Y_ROM)
 
-    # print(f"\nROM Results (before recovery):")
-    # print(f"  Reduced state dimension: {Y_ROM.shape[0]}")
-    # print(f"  Full control dimension: {U_ROM.shape[0]}")
-    # print(f"  Time steps: {Y_ROM.shape[1]}")
+    print(f"\nROM Results (before recovery):")
+    print(f"  Reduced state dimension: {Y_ROM.shape[0]}")
+    print(f"  Reduced control dimension: {U_ROM.shape[0]}")
+    print(f"  Time steps: {Y_ROM.shape[1]}")
 
     # Recover FOM solution from ROM
     U_ROM_full = POD_Basis @ U_ROM  # Project control back to full space
     Y_ROM_full = POD_Basis @ Y_ROM  # Project state back to full space
     P_ROM_full = POD_Basis @ P_ROM  # Project adjoint back to full space
 
-    # print(f"\nROM Results (after recovery to full space):")
-    # print(f"  State dimension: {Y_ROM_full.shape[0]}")
-    # print(f"  Control dimension: {U_ROM_full.shape[0]}")
-    # print(f"  Adjoint dimension: {P_ROM_full.shape[0]}")
+    print(f"\nROM Results (after recovery to full space):")
+    print(f"  State dimension: {Y_ROM_full.shape[0]}")
+    print(f"  Control dimension: {U_ROM_full.shape[0]}")
+    print(f"  Adjoint dimension: {P_ROM_full.shape[0]}")
 
     print(f"\nFOM optimization time: {history['time']:.3f} seconds")
     print(f"ROM optimization time: {history_ROM['time']:.3f} seconds")
@@ -263,7 +263,7 @@ if DO_ERROR_ANALYSIS:
         state_error_list.append(state_error)
         adjoint_error_list.append(adjoint_error)
 
-        print(f"Control error: {control_error:.6e}")
+        print("Control error: {control_error:.6e}")
         print(f"State error: {state_error:.6e}")
         print(f"Adjoint error: {adjoint_error:.6e}")
 
@@ -283,11 +283,18 @@ if DO_ERROR_ANALYSIS_DIFFERENT_BETAS:
     number_of_betas = 5
     beta_list = [10.**(-j) for j in range(0,number_of_betas)]
 
-    for j in range(0,number_of_betas):
+    control_error_betas = []
+    state_error_betas = []
+    adjoint_error_betas = []
+
+    m = supplements.parabolic_model(p)
+    m.build_problem()
+
+    for i in range(0,number_of_betas):
         print("\n" + "-"*60)
-        print("beta = "+str(j))
+        print("beta = "+str(i))
         print("-"*60)
-        beta = beta_list[j]
+        beta = beta_list[i]
         opt_beta = optimization.optimization_class(m,beta,tol)
         opt_beta.Y_d = np.repeat( y_d_0.reshape(-1,1), m.K, axis=1 )
         opt_beta.U_d = np.repeat( u_d_0.reshape(-1,1), m.K, axis=1 )
@@ -297,7 +304,7 @@ if DO_ERROR_ANALYSIS_DIFFERENT_BETAS:
                             print_final=True,
                             plot_grad_convergence=True,
                             save_plot_grad_convergence=GENERATE_PLOTS,
-                            path=PLOTS+"convergence_beta"+str(j),
+                            path=PLOTS+"convergence_FOM_beta"+str(i),
                         )
         U_opt_beta = m.vector_to_matrix(u_opt_beta,option="control")
         Y_opt_beta = m.solve_state(U_opt_beta)
@@ -328,12 +335,12 @@ if DO_ERROR_ANALYSIS_DIFFERENT_BETAS:
             # Solve ROM 
             print("\nSOLVING REDUCED-ORDER MODEL (ROM)")
 
-            u_ROM_err, _ = opt_ROM_err.solve( U_0_ROM_err, "BB",
+            u_ROM_err, history_ROM_err = opt_ROM_err.solve( U_0_ROM_err, "BB",
                                         print_info=True,
                                         print_final=True,
                                         plot_grad_convergence=True,
                                         save_plot_grad_convergence=GENERATE_PLOTS,
-                                        path=PLOTS+"convergence_ROM_"+str(j)+"_snapshots",
+                                        path=PLOTS+"convergence_ROM_"+str(j)+"_snapshots_beta"+str(i),
                                 )
             U_ROM_err = pod_err.model.vector_to_matrix(u_ROM_err,option="control")
             Y_ROM_err = pod_err.model.solve_state(U_ROM_err)
@@ -361,14 +368,26 @@ if DO_ERROR_ANALYSIS_DIFFERENT_BETAS:
             state_error_list.append(state_error)
             adjoint_error_list.append(adjoint_error)
 
-            print(f"Control error: {control_error:.6e}")
+            print(f"\nControl error: {control_error:.6e}")
             print(f"State error: {state_error:.6e}")
             print(f"Adjoint error: {adjoint_error:.6e}")
 
         if GENERATE_PLOTS:
-            pod.plot_error(control_error_list,error_type="control",path=PLOTS,beta=str(beta))
-            pod.plot_error(state_error_list,error_type="state",path=PLOTS,beta=str(beta))
-            pod.plot_error(adjoint_error_list,error_type="adjoint",path=PLOTS,beta=str(beta))
+            pod.plot_error(control_error_list,error_type="control",path=PLOTS,beta=str(i))
+            pod.plot_error(state_error_list,error_type="state",path=PLOTS,beta=str(i))
+            pod.plot_error(adjoint_error_list,error_type="adjoint",path=PLOTS,beta=str(i))
+        
+        control_error_betas.append(control_error_list)
+        state_error_betas.append(state_error_list)
+        adjoint_error_betas.append(adjoint_error_list)
+
+        print(f"\nFOM optimization time: {history_beta['time']:.3f} seconds")
+        print(f"ROM optimization time: {history_ROM_err['time']:.3f} seconds")
+        print(f"Speedup factor: {history_beta['time']/history_ROM_err['time']:.2f}x")
+
+        print("\nControl error list for beta="+str(beta)+" is "+str(control_error_list))
+        print("State error list for beta="+str(beta)+" is "+str(state_error_list))
+        print("Adjoint error list for beta="+str(beta)+" is "+str(adjoint_error_list))
 
 #============================================================
 #%% Plots

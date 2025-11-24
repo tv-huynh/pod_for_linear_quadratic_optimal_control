@@ -134,7 +134,7 @@ class pod():
 
             # Normalize each POD basis vector
             for i in range(POD_Basis.shape[1]):
-                POD_Basis[:, i] = POD_Basis[:, i] / self.model.eval_L2H_norm(POD_Basis[:, i],space_norm=self.space_norm,spatial_only=True)
+                POD_Basis[:, i] = POD_Basis[:, i] / np.linalg.norm(POD_Basis[:, i]) #self.model.eval_L2H_norm(POD_Basis[:, i],space_norm=self.space_norm,spatial_only=True)
         
         elif flag == 1: 
             # Compute eigenvalues of YY' with size (n_x, n_x):
@@ -170,7 +170,7 @@ class pod():
             
             # Normalize each POD basis vector
             for i in range(POD_Basis.shape[1]):
-                POD_Basis[:, i] = POD_Basis[:, i] / self.model.eval_L2H_norm(POD_Basis[:, i],space_norm=self.space_norm,spatial_only=True)
+                POD_Basis[:, i] = POD_Basis[:, i] / np.linalg.norm(POD_Basis[:, i]) #self.model.eval_L2H_norm(POD_Basis[:, i],space_norm=self.space_norm,spatial_only=True)
 
         elif flag == 2: 
             # Method of snapshots: eigs of Y'Y with size (n_t,n_t)
@@ -203,7 +203,7 @@ class pod():
 
             # Normalize each POD basis vector
             for i in range(POD_Basis.shape[1]):
-                POD_Basis[:, i] = POD_Basis[:, i] / self.model.eval_L2H_norm(POD_Basis[:, i],space_norm=self.space_norm,spatial_only=True)
+                POD_Basis[:, i] = POD_Basis[:, i] / np.linalg.norm(POD_Basis[:, i]) #self.model.eval_L2H_norm(POD_Basis[:, i],space_norm=self.space_norm,spatial_only=True)
             
         else:
             assert 0, 'wrong flag input ...'
@@ -212,6 +212,15 @@ class pod():
         self.POD_values = POD_values
         self.POD_values_normalized = normalized_values[indices]
         self.Singular_values = np.sqrt(POD_values)
+
+        print("\nPOD eigenvalues (lambda_i):")
+        for i, val in enumerate(POD_values):
+            print(f"  mode {i+1}: {val}")
+
+        print(f"\nPOD basis shape: {POD_Basis.shape}")
+        for i in range(POD_Basis.shape[1]):
+            norm = self.model.eval_L2H_norm(POD_Basis[:, i], spatial_only=True)
+            print(f"Norm of POD basis vector {i+1}: {norm}")
         
         return POD_Basis, POD_values
     

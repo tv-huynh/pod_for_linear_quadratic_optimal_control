@@ -18,10 +18,10 @@ SOLVE_FOM = True
 SOLVE_ROM = True
 VARY_BETA = False
 DO_ERROR_ANALYSIS = False
-DO_ERROR_ANALYSIS_DIFFERENT_BETAS = True
+DO_ERROR_ANALYSIS_DIFFERENT_BETAS = False
 GENERATE_PLOTS = True
 
-space_norm = "L2"
+space_norm = "H1" # L2, H1, H10
 l = 20
 optimal_snapshots = False
 if optimal_snapshots == True:
@@ -39,7 +39,7 @@ tol = 1.e-7 # tolerance for the optimization algorithm
 p = supplements.analytical_problem()
 p.x1a = 0.0; p.x1b = 1.0;   p.x2a = 0.0; p.x2b = 1.0
 p.t0 = 0;                   p.T = 2
-p.h = 0.05;                 p.K = 101
+p.h = 0.005;                 p.K = 101
 p.y0 = fenics.Constant(0.0)
 p.c_u = fenics.Constant(1.0)
 y_d_exp = fenics.Constant(1.0)
@@ -55,7 +55,7 @@ opt.U_d = np.repeat( u_d_0.reshape(-1,1), m.K, axis=1 )
 U_0 = opt.U_d.copy()
 
 if GENERATE_PLOTS:
-    PLOTS = "plots_"+file_name+"/"
+    PLOTS = "plots_"+file_name+"_"+space_norm+"norm/"
     m.format_folder(PLOTS)
     
 #============================================================

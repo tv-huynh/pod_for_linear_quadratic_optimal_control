@@ -22,7 +22,7 @@ DO_ERROR_ANALYSIS_DIFFERENT_BETAS = False
 GENERATE_PLOTS = True
 
 space_norm = "H1" # L2, H1, H10
-l = 20
+l = 10
 optimal_snapshots = False
 if optimal_snapshots == True:
     file_name = "optimalSnapshots"

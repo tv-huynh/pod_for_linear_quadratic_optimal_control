@@ -18,7 +18,7 @@ SOLVE_FOM = True
 SOLVE_ROM = True
 VARY_BETA = False
 DO_ERROR_ANALYSIS = False
-DO_ERROR_ANALYSIS_DIFFERENT_BETAS = False
+DO_ERROR_ANALYSIS_DIFFERENT_BETAS = True
 GENERATE_PLOTS = True
 
 space_norm = "H1" # L2, H1, H10
@@ -39,7 +39,7 @@ tol = 1.e-7 # tolerance for the optimization algorithm
 p = supplements.analytical_problem()
 p.x1a = 0.0; p.x1b = 1.0;   p.x2a = 0.0; p.x2b = 1.0
 p.t0 = 0;                   p.T = 2
-p.h = 0.005;                 p.K = 101
+p.h = 0.05;                 p.K = 101
 p.y0 = fenics.Constant(0.0)
 p.c_u = fenics.Constant(1.0)
 y_d_exp = fenics.Constant(1.0)

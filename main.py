@@ -18,7 +18,7 @@ SOLVE_FOM = True
 SOLVE_ROM = True
 VARY_BETA = False
 DO_ERROR_ANALYSIS = False
-DO_ERROR_ANALYSIS_DIFFERENT_BETAS = True
+DO_ERROR_ANALYSIS_DIFFERENT_BETAS = False
 GENERATE_PLOTS = True
 
 space_norm = "H1" # L2, H1, H10
@@ -163,7 +163,7 @@ if VARY_BETA:
     print("SOLVING FULL-ORDER MODEL (FOM) FOR DIFFERENT BETA")
     print("="*60)
 
-    number_of_betas = 5
+    number_of_betas = 8
     beta_list = [10.**(-j) for j in range(0,number_of_betas)]
 
     m_beta = supplements.parabolic_model(p)
@@ -392,7 +392,7 @@ if DO_ERROR_ANALYSIS_DIFFERENT_BETAS:
 #============================================================
 #%% Plots
 #============================================================
-GENERATE_PLOTS = False
+#GENERATE_PLOTS = False
 if GENERATE_PLOTS:
     print("\n" + "="*60)
     print("GENERATING PLOTS")

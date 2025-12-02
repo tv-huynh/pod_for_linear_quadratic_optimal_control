@@ -65,7 +65,6 @@ class parabolic_model():
         # Plot mesh
         plt.figure()
         fenics.plot(self.mesh, linewidth=1.5, color="tab:blue")
-        plt.title("Mesh")
         plt.savefig("plots/mesh.png")
         plt.close()
         

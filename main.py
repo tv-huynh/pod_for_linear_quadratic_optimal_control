@@ -38,6 +38,7 @@ tol = 1.e-7 # tolerance for the optimization algorithm
 
 p = supplements.analytical_problem()
 p.x1a = 0.0; p.x1b = 1.0;   p.x2a = 0.0; p.x2b = 1.0
+p.omega_x = (0.25,0.75);    p.omega_y = (0.25,0.75)
 p.t0 = 0;                   p.T = 2
 p.h = 0.05;                 p.K = 101
 p.y0 = fenics.Constant(0.0)
@@ -55,7 +56,7 @@ opt.U_d = np.repeat( u_d_0.reshape(-1,1), m.K, axis=1 )
 U_0 = opt.U_d.copy()
 
 if GENERATE_PLOTS:
-    PLOTS = "plots_"+file_name+"_"+space_norm+"norm/"
+    PLOTS = "plots/"#+file_name+"_"+space_norm+"norm/"
     m.format_folder(PLOTS)
     
 #============================================================
@@ -397,7 +398,7 @@ if GENERATE_PLOTS:
     print("\n" + "="*60)
     print("GENERATING PLOTS")
     print("="*60)
-    
+    '''
     for k in range(0, p.K, 10):
         print(f"Plotting time step {k}...")
         m.plot_3d(Y_opt[:,k], save_png=True, path=PLOTS+f"Y_FOM_{k}.png") # title=f"FOM State t={k}"
@@ -406,14 +407,14 @@ if GENERATE_PLOTS:
         m.plot_3d(Y_ROM_full[:,k], save_png=True, path=PLOTS+f"Y_ROM_{k}.png") # title=f"ROM State t={k}"
         m.plot_3d(U_ROM_full[:,k], save_png=True, path=PLOTS+f"U_ROM_{k}.png") # title=f"ROM Control t={k}"
         m.plot_3d(P_ROM_full[:,k], save_png=True, path=PLOTS+f"P_ROM_{k}.png") # title=f"ROM Adjoint t={k}"
-    
+    '''
     # Final time step
     m.plot_3d(Y_opt[:,p.K-2], save_png=True, path=PLOTS+f"Y_FOM_{p.K-2}.png") # title=f"FOM State t={p.K-2}"
     m.plot_3d(U_opt[:,p.K-2], save_png=True, path=PLOTS+f"U_FOM_{p.K-2}.png") # title=f"FOM Control t={p.K-2}"
     m.plot_3d(P_opt[:,p.K-2], save_png=True, path=PLOTS+f"P_FOM_{p.K-2}.png") # title=f"FOM Adjoint t={p.K-2}"
-    m.plot_3d(Y_ROM_full[:,p.K-2], save_png=True, path=PLOTS+f"Y_ROM_{p.K-2}.png") # title=f"ROM State t={p.K-2}"
-    m.plot_3d(U_ROM_full[:,p.K-2], save_png=True, path=PLOTS+f"U_ROM_{p.K-2}.png") # title=f"ROM Control t={p.K-2}"
-    m.plot_3d(P_ROM_full[:,p.K-2], save_png=True, path=PLOTS+f"P_ROM_{p.K-2}.png") # title=f"ROM Adjoint t={p.K-2}"
+    #m.plot_3d(Y_ROM_full[:,p.K-2], save_png=True, path=PLOTS+f"Y_ROM_{p.K-2}.png") # title=f"ROM State t={p.K-2}"
+    #m.plot_3d(U_ROM_full[:,p.K-2], save_png=True, path=PLOTS+f"U_ROM_{p.K-2}.png") # title=f"ROM Control t={p.K-2}"
+    #m.plot_3d(P_ROM_full[:,p.K-2], save_png=True, path=PLOTS+f"P_ROM_{p.K-2}.png") # title=f"ROM Adjoint t={p.K-2}"
     
     print("All plots saved to " + PLOTS)
 

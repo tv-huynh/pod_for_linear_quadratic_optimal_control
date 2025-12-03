@@ -18,6 +18,8 @@ class analytical_problem():
         self.dir_boundary = lambda x,on_boundary: on_boundary
         self.c_u = fenics.Constant(1.0)
         self.true_solution = None
+        self.omega_x = (0.0, 1.0)  # default: full domain
+        self.omega_y = (0.0, 1.0)  # default: full domain
     @property
     def SE(self):
         return fenics.Point(self.x1a,self.x2a)
@@ -43,6 +45,7 @@ class parabolic_model():
         self.build_timegrid()
         self.define_function_space()
         self.create_FE_matrices()
+        self.build_control_mask()
      
     def build_timegrid(self):
         self.K = self.p.K
@@ -78,7 +81,12 @@ class parabolic_model():
         M = fenics.assemble( y * phi * fenics.dx ) # mass matrix
         A = fenics.assemble( fenics.dot(fenics.nabla_grad(y),
                 fenics.nabla_grad(phi)) * fenics.dx ) # stiffness matrix 
-        B = fenics.assemble( self.p.c_u * y * phi * fenics.dx )
+        
+        # --- NEW: assemble B only over omega ---
+        chi_omega = fenics.Expression('((x[0] >= {x0}) && (x[0] <= {x1}) && (x[1] >= {y0}) && (x[1] <= {y1})) ? 1.0 : 0.0'.format(x0=self.p.omega_x[0], x1=self.p.omega_x[1], y0=self.p.omega_y[0], y1=self.p.omega_y[1]), degree=1)
+        B = fenics.assemble( self.p.c_u * chi_omega * y * phi * fenics.dx )
+        # --- END NEW ---
+        #B = fenics.assemble( self.p.c_u * y * phi * fenics.dx )
         self.y0 = fenics.interpolate(self.p.y0,self.V).vector().get_local()
         self.BC.apply(M)
         self.BC.apply(A)
@@ -92,6 +100,17 @@ class parabolic_model():
         self.state_dof = self.dof
         self.state_products = {"H1": self.A, "L2": self.M, "H10": self.M+self.A}
         self.is_reduced = False # flag to track if model is reduced
+
+    def build_control_mask(self):
+        """Boolean mask of length dof: True if dof is in omega, else False."""
+        chi_omega = fenics.Expression(
+            '((x[0] >= {x0}) && (x[0] <= {x1}) && (x[1] >= {y0}) && (x[1] <= {y1})) ? 1.0 : 0.0'.format(
+                x0=self.p.omega_x[0], x1=self.p.omega_x[1],
+                y0=self.p.omega_y[0], y1=self.p.omega_y[1]),
+            degree=1)
+        chi_fun = fenics.interpolate(chi_omega, self.V)
+        vals = chi_fun.vector().get_local()
+        self.control_mask = (vals > 0.5)
 
     def update_state_products(self):
         self.state_products = {"H1": self.A, "L2": self.M, "H10": self.M+self.A}
@@ -218,3 +237,12 @@ class parabolic_model():
         if save_png:
             plt.savefig(path,dpi=600)
         plt.close(fig)
+
+    def plot_3d_control_on_omega(self, u_vec, title=None, save_png=False, path=None):
+        # u_vec is a spatial control vector at one time
+        chi_omega = fenics.Expression('((x[0] >= {x0}) && (x[0] <= {x1}) && (x[1] >= {y0}) && (x[1] <= {y1})) ? 1.0 : 0.0'.format(x0=self.p.omega_x[0], x1=self.p.omega_x[1],y0=self.p.omega_y[0], y1=self.p.omega_y[1]),degree=1)
+        chi_fun = fenics.interpolate(chi_omega, self.V)
+        mask = chi_fun.vector().get_local()
+        u_active = u_vec * mask  # elementwise
+
+        self.plot_3d(u_active, title=title, save_png=save_png, path=path)

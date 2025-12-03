@@ -17,6 +17,16 @@ class optimization_class():
         self.tol = tol # tolerance for the optimization algorithm
         self.prec = "id" # standard preconditioner is the identity
     
+
+    def project_control_to_omega(self, u_vec):
+        """Set control dofs outside omega to zero (works for flattened vector)."""
+        mask = self.m.control_mask
+        # u_vec is flattened of size dof*K
+        u_mat = self.m.vector_to_matrix(u_vec, option="control")
+        u_mat[~mask, :] = 0.0
+        return u_mat.flatten()
+
+
     def eval_cost( self, u ):
         U = self.m.vector_to_matrix(u, option="control")
         Z = self.m.solve_state(U) - self.Y_d
@@ -79,6 +89,8 @@ class optimization_class():
         u_km1 = np.zeros_like(u_0)
         grad_km1, Y, P = self.eval_grad(u_km1)
         u_k = grad_km1
+        if hasattr(self.m, "control_mask") and self.m.control_mask.shape[0] == self.m.control_dof:
+            u_k = self.project_control_to_omega(u_k)   # enforce u=0 outside omega
         grad_k, Y, P = self.eval_grad(u_k)
         k = 0
         err = self.m.eval_L2H_norm(grad_k)
@@ -105,6 +117,8 @@ class optimization_class():
             # Update
             u_km1 = u_k.copy()
             u_k = u_k - grad_k/alpha_k
+            if hasattr(self.m, "control_mask") and self.m.control_mask.shape[0] == self.m.control_dof:
+                u_k = self.project_control_to_omega(u_k)   # enforce u=0 outside omega
             grad_km1 = grad_k.copy()
 
             # Compute new gradient and its norm

@@ -291,12 +291,14 @@ class pod():
         model.M_FOM = model.M.copy()
         model.A_FOM = model.A.copy()
         model.B_FOM = model.B.copy()
+        model.F_FOM = self.model.get_F_matrix()
         model.POD_Basis = U
 
         # create projected pde
         model.A = U.T@(model.A.dot(V))
         model.M = U.T@(model.M.dot(V))
         model.B = U.T@model.B@ U
+        model.F = U.T @ model.F_FOM 
         model.solve = factorized( model.M + model.delta_t * model.A )
         model.dof = model.M.shape[0]
         model.state_dof = model.dof

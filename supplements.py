@@ -7,7 +7,7 @@ Modifications and additions by: Thanh-Van Huynh -> Plotting
 import os, shutil
 import fenics
 import numpy as np
-from scipy.sparse import csc_matrix
+from scipy.sparse import csc_matrix, csr_matrix
 from scipy.sparse.linalg import factorized
 import matplotlib.pyplot as plt
 
@@ -16,8 +16,10 @@ import matplotlib.pyplot as plt
 class analytical_problem():
     def __init__(self):
         self.dir_boundary = lambda x,on_boundary: on_boundary
-        self.c_u = fenics.Constant(1.0)
         self.true_solution = None
+        self.kappa = fenics.Constant(1.0)
+        self.gamma = fenics.Constant(0.0)
+        self.f = 0
         self.omega_x = (0.0, 1.0)  # default: full domain
         self.omega_y = (0.0, 1.0)  # default: full domain
     @property
@@ -66,34 +68,43 @@ class parabolic_model():
         if self.mesh.hmax() > self.p.h-1.e-20:
             breakpoint()
         # Plot mesh
-        plt.figure()
+        '''plt.figure()
         fenics.plot(self.mesh, linewidth=1.5, color="tab:blue")
         plt.savefig("plots/mesh.png")
-        plt.close()
+        plt.close()'''
         
     def define_function_space( self ):
         self.V = fenics.FunctionSpace( self.mesh, 'CG', 1 )
         self.BC = fenics.DirichletBC( self.V, fenics.Constant(0.0), self.p.dir_boundary )        
             
     def create_FE_matrices( self ):
+        kappa = self.p.kappa; print(f"diffusion coefficient kappa = {float(kappa)}")
+        gamma = self.p.gamma; print(f"reaction coefficient gamma = {float(gamma)}")
         y = fenics.TrialFunction(self.V)
-        phi = fenics.TestFunction(self.V)
+        phi = fenics.TestFunction(self.V); self.phi = phi
         M = fenics.assemble( y * phi * fenics.dx ) # mass matrix
-        A = fenics.assemble( fenics.dot(fenics.nabla_grad(y),
-                fenics.nabla_grad(phi)) * fenics.dx ) # stiffness matrix 
+        A = fenics.assemble( 
+            (
+                kappa * (fenics.dot(fenics.nabla_grad(y),fenics.nabla_grad(phi)))
+                + gamma * y * phi
+            ) * fenics.dx ) # stiffness matrix 
         
         # --- NEW: assemble B only over omega ---
         chi_omega = fenics.Expression('((x[0] >= {x0}) && (x[0] <= {x1}) && (x[1] >= {y0}) && (x[1] <= {y1})) ? 1.0 : 0.0'.format(x0=self.p.omega_x[0], x1=self.p.omega_x[1], y0=self.p.omega_y[0], y1=self.p.omega_y[1]), degree=1)
-        B = fenics.assemble( self.p.c_u * chi_omega * y * phi * fenics.dx )
+        B = fenics.assemble( chi_omega * y * phi * fenics.dx )
         # --- END NEW ---
-        #B = fenics.assemble( self.p.c_u * y * phi * fenics.dx )
+        #B = fenics.assemble( y * phi * fenics.dx )
         self.y0 = fenics.interpolate(self.p.y0,self.V).vector().get_local()
+        if isinstance(self.p.f, fenics.Expression) or isinstance(self.p.f, fenics.Constant):
+            self.f_expr = self.p.f
+        else:
+            self.f_expr = None
         self.BC.apply(M)
         self.BC.apply(A)
         self.BC.apply(B)
-        self.M = csc_matrix(fenics.as_backend_type(M).mat().getValuesCSR()[::-1])
-        self.A = csc_matrix(fenics.as_backend_type(A).mat().getValuesCSR()[::-1])
-        self.B = csc_matrix(fenics.as_backend_type(B).mat().getValuesCSR()[::-1])
+        self.M = csr_matrix(fenics.as_backend_type(M).mat().getValuesCSR()[::-1])
+        self.A = csr_matrix(fenics.as_backend_type(A).mat().getValuesCSR()[::-1])
+        self.B = csr_matrix(fenics.as_backend_type(B).mat().getValuesCSR()[::-1])
         self.solve = factorized( self.M + self.delta_t * self.A )
         self.dof = self.M.shape[0]
         self.control_dof = self.dof # initially, state and control dimensions are the same
@@ -126,10 +137,34 @@ class parabolic_model():
             """Reshape control vector using control dimension"""
             return v.reshape(self.control_dof, self.K)
     
+    def get_F_matrix(self):
+        F = np.zeros((self.dof, self.K))
+        if self.f_expr is None:
+            return F
+        for k in range(self.K):
+            if hasattr(self.f_expr, "t"):
+                self.f_expr.t = float(self.t_v[k])
+            f_vec = fenics.assemble(self.f_expr * self.phi * fenics.dx).get_local()
+            F[:, k] = f_vec
+        return F
+
     def solve_state( self, U ):
         y = self.y0.copy(); Y = y.copy().reshape(-1,1)
         for k in range( 1, self.K ):
             b = self.M.dot(y) + self.B.dot(U[:,k])
+            
+            if self.is_reduced:
+                # use projected forcing
+                if hasattr(self, "F"):
+                    b += self.delta_t * self.F[:, k]
+            else:
+                # FOM: assemble f from Expression
+                if self.f_expr is not None:
+                    if hasattr(self.f_expr, "t"):
+                        self.f_expr.t = float(self.t_v[k])
+                    f_vec = fenics.assemble(self.f_expr * self.phi * fenics.dx).get_local()
+                    b += self.delta_t * f_vec
+
             b = self.apply_BC_to_vector(b)
             y = self.solve( b )
             Y = np.concatenate((Y,y.reshape(-1,1)), axis=1)
@@ -183,7 +218,7 @@ class parabolic_model():
         if self.is_reduced: # don't apply BC to reduced matrices
             return M
         bc = self.BC.get_boundary_values()
-        D = csc_matrix(np.diag([bc[k] if k in bc else 1.0 for k in range(M.shape[0])]))
+        D = csr_matrix(np.diag([bc[k] if k in bc else 1.0 for k in range(M.shape[0])]))
         M = D.dot(M.dot(D))
         return M
     

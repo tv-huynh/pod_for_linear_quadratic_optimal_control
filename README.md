@@ -1,5 +1,5 @@
 # POD-Based Control Space Reduction for Convection-Diffusion-Reaction Equations
-This is the code corresponding to my mathematics master thesis "POD-Based Control Space Reduction for Convection-Diffusion-Reaction Equations" written at the University at Konstanz.
+This is the code (for the time being) corresponding to my mathematics master thesis "POD-Based Control Space Reduction for Convection-Diffusion-Reaction Equations" that is currently being written at the University at Konstanz. The code is subject to change until the submission of the thesis.
 
 ## Optimal Control Problem
 Given the time interval $(0,T)$ with $T=2$ and the unit square $\Omega=(0,1)^2$, we consider the parabolic linear-quadratic optimal control problem

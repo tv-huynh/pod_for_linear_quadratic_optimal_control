@@ -7,13 +7,13 @@ subject to the convection-diffusion-reaction equation
 
 $y_t-\kappa\Delta y+\beta\cdot\nabla y+\gamma y=bu\text{ in } (0,T)\times\Omega$,
 
-$y=0\text{on } (0,T)\times\partial\Omega$,
+$y=0\text{ on } (0,T)\times\partial\Omega$,
 
-$y(0,\cdot)&=y_0(\cdot)&&\text{in } \Omega$,
+$y(0,\cdot)=y_0(\cdot)\text{ in } \Omega$,
 
 with constant partial differential equation (PDE) parameters $\kappa>0$, $\beta\in\mathbb{R}^2$, and $\gamma\in\mathbb{R}$. We consider the desired state $y_d=1$ and varying values for the regularization $\sigma>0$.
 
-The optimality system has the form
+$(\bar{y},\bar{u})$ is a solution to the optimal control problem if and only if $(\bar{y},\bar{u})$ satisfy together with the adjoint variable $\bar{p}$ the first-order optimality system
 
 $\sigma\bar{u}-b\bar{p}=0$,
 

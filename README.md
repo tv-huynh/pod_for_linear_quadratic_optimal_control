@@ -7,7 +7,7 @@ To run the code you need to install the python package FEniCS 2019 in your (loca
 conda create -n control_reduction -c conda-forge python=3.9 fenics=2019.1.0 numpy scipy matplotlib
 
 ```
-After installing all the packages, run one of the experiments by
+After installing all the packages, run the experiments by
 ```
 conda activate control_reduction
 python main.py

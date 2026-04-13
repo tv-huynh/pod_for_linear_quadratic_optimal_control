@@ -9,7 +9,7 @@ conda create -n control_reduction -c conda-forge python=3.9 fenics=2019.1.0 nump
 ```
 After installing all the packages, run one of the experiments by
 ```
-conda activate pod_for_linear_quadratic_optimal_control
+conda activate control_reduction
 python main.py
 ```
 

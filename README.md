@@ -60,8 +60,10 @@ We recall the optimality system and write the sensitivity equation as
 $$\bar{u}=\frac{1}{\sigma}b\bar{p}.$$
 
 Inferring a POD approximation leads to an approximation of the adjoint variable, denoted by $p^{\ell}$, and the corresponding optimality condition becomes
-$$\bar{u}^{\ell}=\frac{1}{\sigma}b\bar{p}^{\ell}=\frac{1}{\sigma}\sum\limits_{i=1}^\ell \mathbf{p}_i\chi_{\omega}\bar{\psi}_i$$
-for coefficients $\mathbf{p}_i\in\mathbb{R}$ from the representation of $\bar{p}^{\ell}$ w.r.t. the POD basis $\{\bar{\psi}_i\}_{i=1}^{\ell}$, i.e., the approximation of the control space is inherited from the approximation of the optimal adjoint through the optimality condition. [In fact](https://arxiv.org/abs/2510.14479 "as shown by Kartmann and Volkwein"), the induced control space reduction is quite natural, in the sense that both the state-reduced and the fully reduced OCP admit the same optimizer.
+
+$$\bar{u}^{\ell}=\frac{1}{\sigma}b\bar{p}^{\ell}=\frac{1}{\sigma}\sum_{i=1}^{\ell} \mathbf{p}_i\chi_{\omega}\bar{\psi}_i$$
+
+for coefficients $\mathbf{p}_i\in\mathbb{R}$ from the representation of $\bar{p}^{\ell}$ w.r.t. the POD basis $\{\bar{\psi}_i\}$, i.e., the approximation of the control space is inherited from the approximation of the optimal adjoint through the optimality condition. [In fact](https://arxiv.org/abs/2510.14479 "as shown by Kartmann and Volkwein"), the induced control space reduction is quite natural, in the sense that both the state-reduced and the fully reduced OCP admit the same optimizer.
 
 ### Error Estimates
 Let us consider an FE solution $\bar{u}$ of the full-order model and a POD solution $\bar{u}^{\ell}$ of the reduced-order model. We want to estimate $\|\bar{u}-\bar{u}^{\ell}\|_U$.

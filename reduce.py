@@ -1,8 +1,8 @@
 """
 reduce.py
 @author: Thanh-Van Huynh
-pod_basis() from Michael Kartmann (https://github.com/michikartmann/pod_for_linear_quadratic_optimal_control)
 """
+
 import scipy.sparse as sps
 from scipy import linalg
 import numpy as np
@@ -32,6 +32,11 @@ class pod():
 
     def pod_basis(self, Y, l, W = None, D = None, flag = 0):
         """
+        # Adapted from pod_for_linear_quadratic_optimal_control by michikartmann 
+        # (https://github.com/michikartmann/pod_for_linear_quadratic_optimal_control)
+        # Original code licensed under the MIT License.
+        # Copyright (c) 2024 Michael Kartmann
+
         #     Compute POD basis
 
         #     Parameters

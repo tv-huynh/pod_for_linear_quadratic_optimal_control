@@ -1,7 +1,6 @@
 """
 optimization.py
 @author: Thanh-Van Huynh
-solve_BB() from Andrea Petrocchi (July 2023)
 """
 
 import numpy as np

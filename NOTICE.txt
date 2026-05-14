@@ -1,0 +1,14 @@
+NOTICE
+
+This repository, created by Thanh-Van Huynh, is licensed under the MIT License.
+See LICENSE for details.
+
+Third-Party Acknowledgements
+-----------------------------
+
+Portions of this software are adapted from:
+
+  pod_for_linear_quadratic_optimal_control
+  https://github.com/michikartmann/pod_for_linear_quadratic_optimal_control
+  Copyright (c) 2024 Michael Kartmann
+  Licensed under the MIT License (https://opensource.org/licenses/MIT)

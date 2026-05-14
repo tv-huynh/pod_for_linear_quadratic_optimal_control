@@ -26,6 +26,8 @@ class pod():
         else:
             self.W_chol = linalg.cholesky(S)
         end_time = time()
+        print(np.shape(self.W_chol))
+        print(np.shape(S))
         self.offline_time_cholesky = end_time-start_time
 
     def pod_basis(self, Y, l, W = None, D = None, flag = 0):
@@ -187,7 +189,7 @@ class pod():
 
         return Y_d_proj, U_d_proj, U_0_proj
     
-    def plot_pod_values(self,path,otherpodvalues=None,otherpodvalues_normalized=None,x_axis="POD rank",fsize=14):
+    def plot_pod_values(self,path,otherpodvalues=None,otherpodvalues_normalized=None,x_axis="POD rank",fsize=16):
         l = len(self.POD_values)
         x_values = np.arange(1,l+1)
         if otherpodvalues is None:
@@ -195,7 +197,7 @@ class pod():
             plt.figure()
             plt.semilogy(x_values,self.POD_values,marker="o")
             plt.xlabel(x_axis, fontsize = fsize)
-            plt.xticks(fontsize = fsize)
+            plt.xticks(x_values, x_values, fontsize = fsize)
             plt.yticks(fontsize = fsize)
             plt.grid(True, alpha=0.3, ls="--")
             plt.tight_layout()
@@ -206,7 +208,7 @@ class pod():
             plt.figure()
             plt.semilogy(x_values,self.POD_values_normalized,marker="o")
             plt.xlabel(x_axis, fontsize = fsize)
-            plt.xticks(fontsize = fsize)
+            plt.xticks(x_values, x_values, fontsize = fsize)
             plt.yticks(fontsize = fsize)
             plt.grid(True, alpha=0.3, ls="--")
             plt.tight_layout()
@@ -216,11 +218,11 @@ class pod():
             print("\nPOD eigenvalues lambda_i:")
             for i, x in enumerate(x_values):
                 y = self.POD_values[i]
-                print("lambda_"+str(i)+"="+str(y))
+                print("lambda_"+str(i+1)+"="+str(y))
             print("\nPOD eigenvalues lambda_i normalized w.r.t. the largest eigenvalue:")
             for i, x in enumerate(x_values):
                 y = self.POD_values_normalized[i]
-                print("lambda_"+str(i)+"="+str(y))
+                print("lambda_"+str(i+1)+"="+str(y))
         else:
             l2 = len(otherpodvalues)
             x_values = np.arange(1,max(l,l2)+1)
@@ -229,7 +231,7 @@ class pod():
             plt.semilogy(x_values[:l],self.POD_values,"o-",label="optimal")
             plt.semilogy(x_values[:l2],otherpodvalues,"s-",label="initial")
             plt.xlabel(x_axis, fontsize = fsize)
-            plt.xticks(fontsize = fsize)
+            plt.xticks(x_values, x_values, fontsize = fsize)
             plt.yticks(fontsize = fsize)
             plt.legend(loc="best", fontsize=fsize,markerscale=2.0)
             plt.grid(True, alpha=0.3, ls="--")

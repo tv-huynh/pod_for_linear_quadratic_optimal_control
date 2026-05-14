@@ -6,27 +6,40 @@ main.py
 import warnings
 import fenics
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.sparse import SparseEfficiencyWarning
 import supplements, optimization, reduce
 
-# Suppress SparseEfficiencyWarning
+# Match Latex font for plots
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.serif": ["cmr10"],
+    "mathtext.fontset": "cm"
+})
+
+# Suppress warnings
 warnings.filterwarnings("ignore", category=SparseEfficiencyWarning)
 
-# Initialize
-SOLVE_FOM = True
-SOLVE_ROM = False
-DIFFERENT_SIGMAS = False
-DIFFERENT_CONTROL_DOMAINS = False
-REDUCED_SPACE_VARIANTS = False
-DIFFERENT_PDE_PARAMETERS = False
+#============================================================
+#%% Initialize
+#============================================================
+
+SOLVE_FOM = True                 # Solve full-order model with standard setting
+SOLVE_ROM = False                 # Solve reduced-order model with standard setting
+DIFFERENT_SIGMAS = False          # Do POD error analysis for different regularization parameters (not in thesis theory)
+DIFFERENT_SNAPSHOTS = False       # Do POD error analysis for initial vs optimal snapshots
+DIFFERENT_CONTROL_DOMAINS = False # Do POD error analysis for different control domains
+DIFFERENT_PDE_PARAMETERS = False  # Do POD error analysis for different PDE parameters
 GENERATE_PLOTS = True
 
-space_norm = "L2" # L2, H1, H10
-l = 10
-optimal_snapshots = True
+space_norm = "L2"                 # L2, H1, H10
+l = 10                            # POD rank ell
+optimal_snapshots = True          # Snapshot choice for ROM
+plot_costs_and_gradients = False  # Plot J and ∇J (cannot plot "×" for ylabel in computer modern/latex font)
 
-sigma = 1.e-1; sigma_og = sigma.copy() # regularization factor in the cost functional
-tol_abs = 1.e-4; tol_rel = 1.e-3 # tolerance for the optimization algorithm
+sigma = 1.e-1                     # regularization factor in the cost functional
+tol_abs = 1.e-4; tol_rel = 1.e-3  # tolerance for the optimization algorithm
+
 print("\n" + "="*60)
 print("SIMULATION STARTING")
 print("="*60)
@@ -37,26 +50,22 @@ print("Regularization: "+str(sigma))
 #============================================================
 
 p = supplements.analytical_problem()
-p.x1a = 0.0; p.x1b = 1.0;   p.x2a = 0.0; p.x2b = 1.0
-#p.omega = [((0.25, 0.75), (0.25, 0.75))] # central
-#p.omega = [((0.0, 0.5), (0.0, 1.0))] # upwind
-#p.omega = [((0.5, 1.0), (0.0, 1.0))] # downwind
-#p.omega = [((0.0, 0.5), (0.0, 0.5)), ((0.5,1.0),(0.5,1.0))] # disconnected
-p.t0 = 0;                   p.T = 2
-p.h = 0.05;                 p.K = 101
-p.y0 = fenics.Constant(0.0)
-p.kappa = fenics.Constant(1.0)
-p.beta_x1 = fenics.Constant(1.0)
-p.beta_x2 = fenics.Constant(0.0)
-#p.beta_x1 = fenics.Expression("-pi*sin(pi*x[0])*cos(pi*x[1])",degree=2) # one swirl
-#p.beta_x2 = fenics.Expression("pi*cos(pi*x[0])*sin(pi*x[1])",degree=2)
+p.x1a = 0.0; p.x1b = 1.0          # Domain Omega (in x1 dimension)
+p.x2a = 0.0; p.x2b = 1.0          # Domain Omega (in x2 dimension)
+p.t0 = 0                          # Initial time
+p.T = 2                           # Final time
+p.h = 0.05                        # Spatial mesh size
+p.K = 101                         # Number of time steps + 1
+p.y0 = fenics.Constant(0.0)       # Initial value for state variable
+p.kappa = fenics.Constant(0.1)    # Diffusion coefficient 
+p.beta_x1 = fenics.Constant(2.0)  # Convection coefficient (x1 dimension)
+p.beta_x2 = fenics.Constant(0.0)  # Convection coefficient (x2 dimension)
 p.beta = fenics.as_vector((p.beta_x1, p.beta_x2))
-p.gamma = fenics.Constant(1.0)
-#p.f = fenics.Expression("(1.0 + 8.0*pow(pi,2)*t)*sin(2*pi*x[0])*sin(2*pi*x[1])",t=0.0,degree=3)
-p.f = 0
-y_d = fenics.Constant(1.0)
-u_d = fenics.Constant(0.0)
-u_0 = fenics.Constant(1.0)
+p.gamma = fenics.Constant(1.0)    # Reaction coefficient
+p.f = 0                           # Source term (not in the theory of the thesis)
+y_d = fenics.Constant(1.0)        # Desired state
+u_d = fenics.Constant(0.0)        # Desired control (not in the theory of the thesis)
+u_0 = fenics.Constant(0.0)        # Initial control (for BB optimization algorithm)
 
 m = supplements.parabolic_model(p)
 m.build_problem()
@@ -70,10 +79,10 @@ if GENERATE_PLOTS:
     m.format_folder(PLOTS)
     m.plot_beta(title=None, save_png=True, path=PLOTS+"beta_field.png")
     m.plot_mesh(path=PLOTS+"mesh.png")
-    # m.plot_f_at_index(50, save_png=True, path=PLOTS+f"f_50.png") # forcing term at k=50, i.e., t=1
+    # m.plot_f_at_index(50, save_png=True, path=PLOTS+f"f_50.png") # source term at k=50, i.e., t=1
 
 #============================================================
-#%% FOM
+#%% Solve full-order model
 #============================================================
 if SOLVE_FOM:
     # Solve FOM
@@ -84,7 +93,7 @@ if SOLVE_FOM:
     u_opt, history = opt.solve( U_0, "BB",
                             print_info=True,
                             print_final=True,
-                            plot_grad_convergence=True,
+                            plot_grad_convergence=plot_costs_and_gradients,
                             save_plot_grad_convergence=GENERATE_PLOTS,
                             path=PLOTS+"convergence_FOM",
                         )
@@ -96,10 +105,8 @@ if SOLVE_FOM:
     print(f"  State dimension: {Y_opt.shape[0]}")
     print(f"  Control dimension: {U_opt.shape[0]}")
 
-    if GENERATE_PLOTS:
-        #m.plot_contour_clean(P_opt[:,50], path=PLOTS) 
+    if GENERATE_PLOTS: 
         # First inner time step
-        """
         m.plot_3d(Y_opt[:,1], save_png=True, path=PLOTS+"Y_FOM_1.png") 
         m.plot_3d(U_opt[:,1], save_png=True, path=PLOTS+"U_FOM_1.png") 
         m.plot_3d(P_opt[:,1], save_png=True, path=PLOTS+"P_FOM_1.png") 
@@ -110,10 +117,10 @@ if SOLVE_FOM:
         # Final inner time step
         m.plot_3d(Y_opt[:,p.K-2], save_png=True, path=PLOTS+f"Y_FOM_{p.K-2}.png") 
         m.plot_3d(U_opt[:,p.K-2], save_png=True, path=PLOTS+f"U_FOM_{p.K-2}.png") 
-        m.plot_3d(P_opt[:,p.K-2], save_png=True, path=PLOTS+f"P_FOM_{p.K-2}.png") """
+        m.plot_3d(P_opt[:,p.K-2], save_png=True, path=PLOTS+f"P_FOM_{p.K-2}.png")
 
 #============================================================
-#%% ROM
+#%% Solve reduced-order model
 #============================================================
 if SOLVE_ROM:
     # Construct ROM out of FOM snapshots
@@ -122,10 +129,10 @@ if SOLVE_ROM:
     print("="*60)
 
     # Get snapshots
-    if optimal_snapshots == True: # train with optimal snapshots
+    if optimal_snapshots == True: # Construct POD basis with optimal snapshots
         snapshots = [Y_opt, P_opt]
         print("Using optimal FOM snapshots for POD basis")
-    else: # train with initial snapshots
+    else: # Construct POD basis with initial snapshots
         snapshots = m.get_snapshots(U_0,opt.Y_d)
         print("Using initial snapshots for POD basis")
     print("Doing POD with l="+str(l)+" POD basis vectors")
@@ -151,7 +158,7 @@ if SOLVE_ROM:
     u_ROM, history_ROM = opt_ROM.solve( U_0_ROM, "BB",
                                 print_info=True,
                                 print_final=True,
-                                plot_grad_convergence=True,
+                                plot_grad_convergence=plot_costs_and_gradients,
                                 save_plot_grad_convergence=GENERATE_PLOTS,
                                 path=PLOTS+"convergence_ROM",
                         )
@@ -163,7 +170,7 @@ if SOLVE_ROM:
     print(f"  Reduced state dimension: {Y_ROM.shape[0]}")
     print(f"  Reduced control dimension: {U_ROM.shape[0]}")
 
-    # Recover FOM solution from ROM
+    # Lift ROM solution into FOM space
     U_ROM_full = POD_Basis @ U_ROM  # Project control back to full space
     Y_ROM_full = POD_Basis @ Y_ROM  # Project state back to full space
     P_ROM_full = POD_Basis @ P_ROM  # Project adjoint back to full space
@@ -177,7 +184,7 @@ if SOLVE_ROM:
         rom.plot_pod_values(path=PLOTS)
 
 #============================================================
-#%% Do error analysis for different sigmas
+#%% Do error analysis for different sigmas !!! not in thesis theory !!!
 #============================================================
 if DIFFERENT_SIGMAS:
     print("\n" + "="*60)
@@ -210,7 +217,7 @@ if DIFFERENT_SIGMAS:
         u_opt_FOM, history_FOM = opt_FOM.solve( U_0, "BB",
                             print_info=True,
                             print_final=True,
-                            plot_grad_convergence=True,
+                            plot_grad_convergence=plot_costs_and_gradients,
                             save_plot_grad_convergence=GENERATE_PLOTS,
                             path=PLOTS+"convergence_FOM_sigma"+str(exp),
                         )
@@ -242,7 +249,7 @@ if DIFFERENT_SIGMAS:
         u_ROM, history_ROM = opt_ROM.solve( U_0_ROM, "BB",
                                     print_info=True,
                                     print_final=True,
-                                    plot_grad_convergence=True,
+                                    plot_grad_convergence=plot_costs_and_gradients,
                                     save_plot_grad_convergence=GENERATE_PLOTS,
                                     path=PLOTS+"convergence_ROM_sigma"+str(exp),
                             )
@@ -316,7 +323,168 @@ if DIFFERENT_SIGMAS:
         m.plot_error_vs_x(sigma_list,control_errors,state_errors,adjoint_errors,axis="loglog",x_axis=r'$\sigma$',path=PLOTS+"err_vs_sigma_abs")
         m.plot_error_vs_x(sigma_list,rel_control_errors,rel_state_errors,rel_adjoint_errors,axis="loglog",x_axis=r'$\sigma$',path=PLOTS+"err_vs_sigma_rel")
 
-    sigma = sigma_og
+    sigma = 1.e-1
+
+#============================================================
+#%% Do error analysis for nitial vs optimal snapshots
+#============================================================
+if DIFFERENT_SNAPSHOTS:
+    print("\n" + "="*60)
+    print("ERROR ANALYSIS FOR INITIAL VS OPTIMAL SNAPSHOTS")
+    print("="*60)
+
+    # Initialize FOM
+    fom = supplements.parabolic_model(p)
+    fom.build_problem()
+    opt_FOM = optimization.optimization_class(fom,sigma,tol_abs,tol_rel)
+    opt_FOM.Y_d = np.repeat( y_d.reshape(-1,1), m.K, axis=1 )
+    opt_FOM.U_d = np.repeat( u_d.reshape(-1,1), m.K, axis=1 )
+
+    # Solve FOM
+    print("\nSOLVING FULL-ORDER MODEL (FOM)")
+    u_FOM, history_FOM = opt_FOM.solve( U_0, "BB",
+                            print_info=True,
+                            print_final=True,
+                            plot_grad_convergence=plot_costs_and_gradients,
+                            save_plot_grad_convergence=GENERATE_PLOTS,
+                            path=PLOTS+"convergence_FOM",
+                        )
+    U_FOM = fom.vector_to_matrix(u_FOM,option="control")
+    Y_FOM = fom.solve_state(U_FOM)
+    P_FOM = fom.solve_adjoint(opt_FOM.Y_d-Y_FOM)
+
+    # Get snapshots
+    snapshot_set = {
+        "initial": fom.get_snapshots(U_0,opt_FOM.Y_d), 
+        "optimal":[Y_FOM, P_FOM]
+    }
+
+    # Lists to track errors
+    control_errors_initial = []
+    state_errors_initial = []
+    adjoint_errors_initial = []
+    control_errors_optimal = []
+    state_errors_optimal = []
+    adjoint_errors_optimal = []
+    max_l_initial = None
+    max_l_optimal = None
+
+    for snaps_str,snaps in snapshot_set.items():
+        print("\n" + "-"*60)
+        print(snaps_str+" snapshots")
+        print("-"*60)
+        # Initialize ROM
+        rom = supplements.parabolic_model(p)
+        rom.build_problem()
+        pod = reduce.pod(rom)
+        POD_basis, POD_values = pod.pod_basis(snaps,l)
+        Y_d_ROM, U_d_ROM, U_0_ROM= pod.project(POD_basis,opt_FOM.Y_d,opt_FOM.U_d,U_0)
+        opt_ROM = optimization.optimization_class(pod.model,sigma,tol_abs,tol_rel)
+        opt_ROM.Y_d = Y_d_ROM
+        opt_ROM.U_d = U_d_ROM
+
+        if snaps_str == "initial":
+            max_l_initial = pod.basissize
+            POD_values_initial = POD_values
+            POD_values_initial_normalized = pod.POD_values_normalized
+        elif snaps_str == "optimal":
+            max_l_optimal = pod.basissize
+
+        # Solve ROM 
+        print("\nSOLVING REDUCED-ORDER MODEL (ROM)")
+        u_ROM, _ = opt_ROM.solve( U_0_ROM, "BB",
+                                    print_info=True,
+                                    print_final=True,
+                                    plot_grad_convergence=plot_costs_and_gradients,
+                                    save_plot_grad_convergence=GENERATE_PLOTS,
+                                    path=PLOTS+"convergence_ROM_"+snaps_str+"_snapshots",
+                            )
+        U_ROM = pod.model.vector_to_matrix(u_ROM,option="control")
+        Y_ROM = pod.model.solve_state(U_ROM)
+        P_ROM = pod.model.solve_adjoint(opt_ROM.Y_d - Y_ROM)
+
+        # Vary POD basis rank
+        control_errors_l = []
+        state_errors_l = []
+        adjoint_errors_l = []
+
+        for j in range(1,pod.basissize+1):
+            print("\n" + "-"*60)
+            print("Number of snapshots l="+str(j))
+            print("-"*60)
+            rom_l = supplements.parabolic_model(p)
+            rom_l.build_problem()
+            pod_l = reduce.pod(rom_l)
+
+            POD_basis_l, POD_values_l = pod_l.pod_basis(snaps,j)
+            Y_d_l, U_d_l, U_0_ROM_l = pod_l.project(POD_basis_l,opt_FOM.Y_d,opt_FOM.U_d,U_0)
+            opt_ROM_l = optimization.optimization_class(pod_l.model,sigma,tol_abs,tol_rel)
+            opt_ROM_l.Y_d = Y_d_l
+            opt_ROM_l.U_d = U_d_l
+
+            # Solve ROM 
+            print("\nSOLVING REDUCED-ORDER MODEL (ROM)")
+
+            u_ROM_l, history_ROM_l = opt_ROM_l.solve( U_0_ROM_l, "BB",
+                                        print_info=True,
+                                        print_final=True,
+                                        plot_grad_convergence=plot_costs_and_gradients,
+                                        save_plot_grad_convergence=GENERATE_PLOTS,
+                                        path=PLOTS+"convergence_ROM_"+str(j)+"_snapshots_"+snaps_str,
+                                )
+            U_ROM_l = pod_l.model.vector_to_matrix(u_ROM_l,option="control")
+            Y_ROM_l = pod_l.model.solve_state(U_ROM_l)
+            P_ROM_l = pod_l.model.solve_adjoint(opt_ROM_l.Y_d - Y_ROM_l)
+            rom_time = history_ROM_l['time'] + pod_l.offline_time_cholesky + pod_l.offline_time_basisconstruction + pod_l.offline_time_projection
+            print(f"ROM optimization time (offline+solving): {rom_time:.3f} seconds")
+
+            # Lift ROM solutions into FOM space
+            U_ROM_full_l = POD_basis_l @ U_ROM_l
+            Y_ROM_full_l = POD_basis_l @ Y_ROM_l
+            P_ROM_full_l = POD_basis_l @ P_ROM_l
+
+            # Compute error
+            control_error = fom.eval_L2H_norm(U_ROM_full_l - U_FOM, space_norm="control")
+            state_error = fom.eval_L2H_norm(Y_ROM_full_l - Y_FOM, space_norm)
+            adjoint_error = fom.eval_L2H_norm(P_ROM_full_l - P_FOM, space_norm)
+
+            control_errors_l.append(control_error)
+            state_errors_l.append(state_error)
+            adjoint_errors_l.append(adjoint_error)
+
+            print(f"Control error: {control_error:.6e}")
+            print(f"State error: {state_error:.6e}")
+            print(f"Adjoint error: {adjoint_error:.6e}")
+        
+        if snaps_str == "initial":
+            control_errors_initial = control_errors_l
+            state_errors_initial = state_errors_l
+            adjoint_errors_initial = adjoint_errors_l
+        elif snaps_str == "optimal":
+            control_errors_optimal = control_errors_l
+            state_errors_optimal = state_errors_l
+            adjoint_errors_optimal = adjoint_errors_l
+
+        # Print errors vs POD rank
+        l_list = range(1,pod.basissize+1)
+        print("\nControl error || u_POD - u_FE || depending on l:")
+        for i in l_list:
+            print("l="+str(i)+", err="+str(control_errors_l[i-1]))
+        print("\nState error || y_POD - y_FE || depending on l:")
+        for i in l_list:
+            print("l="+str(i)+", err="+str(state_errors_l[i-1]))
+        print("\nAdjoint error || p_POD - p_FE || depending on l:")
+        for i in l_list:
+            print("l="+str(i)+", err="+str(adjoint_errors_l[i-1]))
+
+        if GENERATE_PLOTS:
+            pod.plot_pod_values(path=PLOTS+snaps_str+"_snapshots")
+            fom.plot_error_vs_x(list(map(str,l_list)),control_errors_l,state_errors_l,adjoint_errors_l,axis="semilogy",x_axis="POD rank",line=True,path=PLOTS+"err_vs_PODrank_abs_"+snaps_str+"_snapshots")
+    
+    if GENERATE_PLOTS:
+        ranks = range(1,max(max_l_initial,max_l_optimal)+1)
+        fom.plot_error_vs_x(ranks,control_errors_initial,state_errors_initial,adjoint_errors_initial,control_errors_optimal,state_errors_optimal,adjoint_errors_optimal,firstgroup="init ",secondgroup="opt ",axis="semilogy",x_axis="POD rank",path=PLOTS+"err_vs_snaps")
+        pod.plot_pod_values(path=PLOTS,otherpodvalues=POD_values_initial,otherpodvalues_normalized=POD_values_initial_normalized)
 
 #============================================================
 #%% Do error analysis for different control domains
@@ -397,7 +565,7 @@ if DIFFERENT_CONTROL_DOMAINS:
         Y_ROM_full = POD_basis @ Y_ROM
         P_ROM_full = POD_basis @ P_ROM
 
-        # Compute a-priori (absolute and relative) errors in full space
+        # Compute true (absolute and relative) errors in full space
         control_error = fom.eval_L2H_norm(U_ROM_full - U_FOM, space_norm="control")
         state_error = fom.eval_L2H_norm(Y_ROM_full - Y_FOM, space_norm)
         adjoint_error = fom.eval_L2H_norm(P_ROM_full - P_FOM, space_norm)
@@ -413,10 +581,10 @@ if DIFFERENT_CONTROL_DOMAINS:
         aposteriori, residual = opt_FOM.eval_aposteriori_estimate(U_ROM_full,fom,opt_FOM.Y_d)
         print("\n### ERROR ESTIMATES ###\n")
         print(f"A-posteriori estimate: {aposteriori:.6e}")
-        print(f"A-priori estimate: {control_error:.6e}")
+        print(f"True error: {control_error:.6e}")
 
         # Print results to console
-        print("\n### A-PRIORI ###\n")
+        print("\n### TRUE ERRORS ###\n")
         print(f"Control error: {control_error:.6e}")
         print(f"State error: {state_error:.6e}")
         print(f"Adjoint error: {adjoint_error:.6e}")
@@ -462,168 +630,7 @@ if DIFFERENT_CONTROL_DOMAINS:
     p.omega = [((0.0, 1.0), (0.0, 1.0))]
 
 #============================================================
-#%% Initial vs optimal snapshots
-#============================================================
-if REDUCED_SPACE_VARIANTS:
-    print("\n" + "="*60)
-    print("ERROR ANALYSIS FOR INITIAL VS OPTIMAL SNAPSHOTS")
-    print("="*60)
-
-    # Initialize FOM
-    fom = supplements.parabolic_model(p)
-    fom.build_problem()
-    opt_FOM = optimization.optimization_class(fom,sigma,tol_abs,tol_rel)
-    opt_FOM.Y_d = np.repeat( y_d.reshape(-1,1), m.K, axis=1 )
-    opt_FOM.U_d = np.repeat( u_d.reshape(-1,1), m.K, axis=1 )
-
-    # Solve FOM
-    print("\nSOLVING FULL-ORDER MODEL (FOM)")
-    u_FOM, history_FOM = opt_FOM.solve( U_0, "BB",
-                            print_info=True,
-                            print_final=True,
-                            plot_grad_convergence=True,
-                            save_plot_grad_convergence=GENERATE_PLOTS,
-                            path=PLOTS+"convergence_FOM",
-                        )
-    U_FOM = fom.vector_to_matrix(u_FOM,option="control")
-    Y_FOM = fom.solve_state(U_FOM)
-    P_FOM = fom.solve_adjoint(opt_FOM.Y_d-Y_FOM)
-
-    # Get snapshots
-    snapshot_set = {
-        "initial": fom.get_snapshots(U_0,opt_FOM.Y_d), 
-        "optimal":[Y_FOM, P_FOM]
-    }
-
-    # Lists to track errors
-    control_errors_initial = []
-    state_errors_initial = []
-    adjoint_errors_initial = []
-    control_errors_optimal = []
-    state_errors_optimal = []
-    adjoint_errors_optimal = []
-    max_l_initial = None
-    max_l_optimal = None
-
-    for snaps_str,snaps in snapshot_set.items():
-        print("\n" + "-"*60)
-        print(snaps_str+" snapshots")
-        print("-"*60)
-        # Initialize ROM
-        rom = supplements.parabolic_model(p)
-        rom.build_problem()
-        pod = reduce.pod(rom)
-        POD_basis, POD_values = pod.pod_basis(snaps,l)
-        Y_d_ROM, U_d_ROM, U_0_ROM= pod.project(POD_basis,opt_FOM.Y_d,opt_FOM.U_d,U_0)
-        opt_ROM = optimization.optimization_class(pod.model,sigma,tol_abs,tol_rel)
-        opt_ROM.Y_d = Y_d_ROM
-        opt_ROM.U_d = U_d_ROM
-
-        if snaps_str == "initial":
-            max_l_initial = pod.basissize
-            POD_values_initial = POD_values
-            POD_values_initial_normalized = pod.POD_values_normalized
-        elif snaps_str == "optimal":
-            max_l_optimal = pod.basissize
-
-        # Solve ROM 
-        print("\nSOLVING REDUCED-ORDER MODEL (ROM)")
-        u_ROM, _ = opt_ROM.solve( U_0_ROM, "BB",
-                                    print_info=True,
-                                    print_final=True,
-                                    plot_grad_convergence=True,
-                                    save_plot_grad_convergence=GENERATE_PLOTS,
-                                    path=PLOTS+"convergence_ROM_"+snaps_str+"_snapshots",
-                            )
-        U_ROM = pod.model.vector_to_matrix(u_ROM,option="control")
-        Y_ROM = pod.model.solve_state(U_ROM)
-        P_ROM = pod.model.solve_adjoint(opt_ROM.Y_d - Y_ROM)
-
-        # Vary POD basis rank
-        control_errors_l = []
-        state_errors_l = []
-        adjoint_errors_l = []
-
-        for j in range(1,pod.basissize+1):
-            print("\n" + "-"*60)
-            print("Number of snapshots l="+str(j))
-            print("-"*60)
-            rom_l = supplements.parabolic_model(p)
-            rom_l.build_problem()
-            pod_l = reduce.pod(rom_l)
-
-            POD_basis_l, POD_values_l = pod_l.pod_basis(snaps,j)
-            Y_d_l, U_d_l, U_0_ROM_l = pod_l.project(POD_basis_l,opt_FOM.Y_d,opt_FOM.U_d,U_0)
-            opt_ROM_l = optimization.optimization_class(pod_l.model,sigma,tol_abs,tol_rel)
-            opt_ROM_l.Y_d = Y_d_l
-            opt_ROM_l.U_d = U_d_l
-
-            # Solve ROM 
-            print("\nSOLVING REDUCED-ORDER MODEL (ROM)")
-
-            u_ROM_l, history_ROM_l = opt_ROM_l.solve( U_0_ROM_l, "BB",
-                                        print_info=True,
-                                        print_final=True,
-                                        plot_grad_convergence=True,
-                                        save_plot_grad_convergence=GENERATE_PLOTS,
-                                        path=PLOTS+"convergence_ROM_"+str(j)+"_snapshots_"+snaps_str,
-                                )
-            U_ROM_l = pod_l.model.vector_to_matrix(u_ROM_l,option="control")
-            Y_ROM_l = pod_l.model.solve_state(U_ROM_l)
-            P_ROM_l = pod_l.model.solve_adjoint(opt_ROM_l.Y_d - Y_ROM_l)
-            rom_time = history_ROM_l['time'] + pod_l.offline_time_cholesky + pod_l.offline_time_basisconstruction + pod_l.offline_time_projection
-            print(f"ROM optimization time (offline+solving): {rom_time:.3f} seconds")
-
-            # Recover FOM solution from ROM
-            U_ROM_full_l = POD_basis_l @ U_ROM_l  # Project control back to full space
-            Y_ROM_full_l = POD_basis_l @ Y_ROM_l
-            P_ROM_full_l = POD_basis_l @ P_ROM_l
-
-            # Compute error
-            control_error = fom.eval_L2H_norm(U_ROM_full_l - U_FOM, space_norm="control")
-            state_error = fom.eval_L2H_norm(Y_ROM_full_l - Y_FOM, space_norm)
-            adjoint_error = fom.eval_L2H_norm(P_ROM_full_l - P_FOM, space_norm)
-
-            control_errors_l.append(control_error)
-            state_errors_l.append(state_error)
-            adjoint_errors_l.append(adjoint_error)
-
-            print(f"Control error: {control_error:.6e}")
-            print(f"State error: {state_error:.6e}")
-            print(f"Adjoint error: {adjoint_error:.6e}")
-        
-        if snaps_str == "initial":
-            control_errors_initial = control_errors_l
-            state_errors_initial = state_errors_l
-            adjoint_errors_initial = adjoint_errors_l
-        elif snaps_str == "optimal":
-            control_errors_optimal = control_errors_l
-            state_errors_optimal = state_errors_l
-            adjoint_errors_optimal = adjoint_errors_l
-
-        # Print errors vs POD rank
-        l_list = range(1,pod.basissize+1)
-        print("\nControl error || u_POD - u_FE || depending on l:")
-        for i in l_list:
-            print("l="+str(i)+", err="+str(control_errors_l[i-1]))
-        print("\nState error || y_POD - y_FE || depending on l:")
-        for i in l_list:
-            print("l="+str(i)+", err="+str(state_errors_l[i-1]))
-        print("\nAdjoint error || p_POD - p_FE || depending on l:")
-        for i in l_list:
-            print("l="+str(i)+", err="+str(adjoint_errors_l[i-1]))
-
-        if GENERATE_PLOTS:
-            pod.plot_pod_values(path=PLOTS+snaps_str+"_snapshots")
-            fom.plot_error_vs_x(list(map(str,l_list)),control_errors_l,state_errors_l,adjoint_errors_l,axis="semilogy",x_axis="POD rank",path=PLOTS+"err_vs_PODrank_abs_"+snaps_str+"_snapshots")
-    
-    if GENERATE_PLOTS:
-        ranks = range(1,max(max_l_initial,max_l_optimal)+1)
-        fom.plot_error_vs_x(ranks,control_errors_initial,state_errors_initial,adjoint_errors_initial,control_errors_optimal,state_errors_optimal,adjoint_errors_optimal,firstgroup="init ",secondgroup="opt ",axis="semilogy",x_axis="POD rank",path=PLOTS+"err_vs_snaps")
-        pod.plot_pod_values(path=PLOTS,otherpodvalues=POD_values_initial,otherpodvalues_normalized=POD_values_initial_normalized)
-
-#============================================================
-#%% Compare different gammas and vary peclet number
+#%% Do error analysis for different PDE parameters
 #============================================================
 if DIFFERENT_PDE_PARAMETERS:
     print("\n" + "="*60)
@@ -657,7 +664,7 @@ if DIFFERENT_PDE_PARAMETERS:
             xlabel = "Péclet number"
         elif compare == "reaction":
             pde_parameters = {
-                "big_negative_reaction":{
+                "more_negative_reaction":{
                     "kappa": 0.1,
                     "beta": [2.0,0.0],
                     "gamma": -5.0
@@ -672,7 +679,7 @@ if DIFFERENT_PDE_PARAMETERS:
                     "beta": [2.0,0.0],
                     "gamma": 1.0
                 },
-                "big_positive_reaction":{
+                "more_positive_reaction":{
                     "kappa": 0.1,
                     "beta": [2.0,0.0],
                     "gamma": 5.0
@@ -705,7 +712,7 @@ if DIFFERENT_PDE_PARAMETERS:
             u_FOM, history_FOM = opt_FOM.solve( U_0, "BB",
                                 print_info=True,
                                 print_final=True,
-                                plot_grad_convergence=True,
+                                plot_grad_convergence=plot_costs_and_gradients,
                                 save_plot_grad_convergence=GENERATE_PLOTS,
                                 path=PLOTS+"convergence_FOM_"+param_str,
                             )
@@ -736,7 +743,7 @@ if DIFFERENT_PDE_PARAMETERS:
             u_ROM, history_ROM = opt_ROM.solve( U_0_ROM, "BB",
                                         print_info=True,
                                         print_final=True,
-                                        plot_grad_convergence=True,
+                                        plot_grad_convergence=plot_costs_and_gradients,
                                         save_plot_grad_convergence=GENERATE_PLOTS,
                                         path=PLOTS+"convergence_ROM_"+param_str,
                                 )
@@ -765,10 +772,10 @@ if DIFFERENT_PDE_PARAMETERS:
             aposteriori, residual = opt_FOM.eval_aposteriori_estimate(U_ROM_full,fom,opt_FOM.Y_d)
             print("\n### ERROR ESTIMATES ###\n")
             print(f"A-posteriori estimate: {aposteriori:.6e}")
-            print(f"A-priori estimate: {control_error:.6e}")
+            print(f"True error: {control_error:.6e}")
 
             # Print results to console
-            print("\n### A-PRIORI ###\n")
+            print("\n### TRUE ERRORS ###\n")
             print(f"Control error: {control_error:.6e}")
             print(f"State error: {state_error:.6e}")
             print(f"Adjoint error: {adjoint_error:.6e}")
@@ -826,7 +833,7 @@ if GENERATE_PLOTS and SOLVE_FOM and SOLVE_ROM:
     print("\n" + "="*60)
     print("GENERATING PLOTS")
     print("="*60)
-    '''
+    """
     for k in range(0, p.K, 10):
         print(f"Plotting time step {k}...")
         m.plot_3d(Y_opt[:,k], save_png=True, path=PLOTS+f"Y_FOM_{k}.png") # title=f"FOM State t={k}"
@@ -835,7 +842,7 @@ if GENERATE_PLOTS and SOLVE_FOM and SOLVE_ROM:
         m.plot_3d(Y_ROM_full[:,k], save_png=True, path=PLOTS+f"Y_ROM_{k}.png") # title=f"ROM State t={k}"
         m.plot_3d(U_ROM_full[:,k], save_png=True, path=PLOTS+f"U_ROM_{k}.png") # title=f"ROM Control t={k}"
         m.plot_3d(P_ROM_full[:,k], save_png=True, path=PLOTS+f"P_ROM_{k}.png") # title=f"ROM Adjoint t={k}"
-    '''
+    """
     # First inner time step
     m.plot_3d(Y_opt[:,1], save_png=True, path=PLOTS+"Y_FOM_1.png") 
     m.plot_3d(U_opt[:,1], save_png=True, path=PLOTS+"U_FOM_1.png") 

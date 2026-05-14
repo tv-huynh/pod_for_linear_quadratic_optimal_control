@@ -124,7 +124,7 @@ class optimization_class():
             if options["save_plot_grad_convergence"]:
                 plt.savefig(options["path"]+"_gradient",dpi=600)
             plt.close()
-        if len(history["cost"])>1:
+        if len(history["cost"])>1 and options["plot_grad_convergence"]:
             plt.figure(figsize=(8, 6))
             plt.semilogy(history["cost"])
             plt.xlabel("Iteration")
@@ -141,7 +141,6 @@ class optimization_class():
     def eval_aposteriori_estimate(self, U_ROM_full, fom_model, Y_d_FOM):
         # Consider control domain
         chi = fom_model.chi
-        U_ROM_full = chi[:, None] * U_ROM_full
 
         # Get residual/gradient given by sigma*U-BP
         Y_ROM_full = fom_model.solve_state(U_ROM_full)

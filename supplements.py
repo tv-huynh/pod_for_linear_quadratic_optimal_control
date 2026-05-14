@@ -71,7 +71,7 @@ class parabolic_model():
         Ny = int(l2/i) + 1; self.Ny = Ny
         self.mesh = fenics.RectangleMesh( self.p.SE, self.p.NW, Nx, Ny )
         print("Mesh size h="+str(self.p.h))
-        print("Degrees of freedom N="+str(Nx*Ny))
+        print("Degrees of freedom N="+str((Nx+1)*(Ny+1)))
         if self.mesh.hmax() > self.p.h-1.e-20:
             breakpoint()
         
@@ -275,7 +275,7 @@ class parabolic_model():
             plt.savefig(path,dpi=600,bbox_inches="tight",pad_inches=0.05)
         plt.close(fig)
 
-    def plot_beta(self, title=None, save_png=True, path="plots/beta",fsize=18):
+    def plot_beta(self, title=None, save_png=True, path="plots/beta",fsize=20):
         V_vec = fenics.VectorFunctionSpace(self.mesh, "CG", 1)
         
         # Interpolate components separately
@@ -321,7 +321,7 @@ class parabolic_model():
             plt.savefig(f"{path}.png", dpi=600, bbox_inches="tight")
         plt.close()
 
-    def plot_mesh(self, fsize=18, save_png=True, path="plots/mesh"):
+    def plot_mesh(self, fsize=20, save_png=True, path="plots/mesh"):
         plt.figure()
         plt.figure(figsize=(8, 8))
         fenics.plot(self.mesh, linewidth=1.5, color="tab:blue")
@@ -338,14 +338,19 @@ class parabolic_model():
             plt.savefig(f"{path}.png", dpi=600, bbox_inches="tight")
         plt.close()
     
-    def plot_error_vs_x(self, x, err_u, err_y, err_p, err_u_2=None, err_y_2=None, err_p_2=None, firstgroup="abs ", secondgroup="rel ", axis="normal", x_axis=None, title=None, save_png=True, path=None, fsize=18):
+    def plot_error_vs_x(self, x, err_u, err_y, err_p, err_u_2=None, err_y_2=None, err_p_2=None, firstgroup="abs ", secondgroup="rel ", axis="normal", x_axis=None, title=None, line=False, save_png=True, path=None, fsize=20):
         """Plot err_u/y/p vs x (with normal or semilogy or loglog axis)."""
         plt.figure(figsize=(8, 6))
         if axis=="normal":
             if err_u_2 is None:
-                plt.plot(x, err_u, "o-", label="$err_u$", linewidth=2, markersize=6)
-                plt.plot(x, err_y, "s-", label="$err_y$", linewidth=2, markersize=6)
-                plt.plot(x, err_p, "^-", label="$err_p$", linewidth=2, markersize=6)
+                if line:
+                    plt.plot(x, err_u, "o-", label="$err_u$", linewidth=2, markersize=6)
+                    plt.plot(x, err_y, "s-", label="$err_y$", linewidth=2, markersize=6)
+                    plt.plot(x, err_p, "^-", label="$err_p$", linewidth=2, markersize=6)
+                else:
+                    plt.plot(x, err_u, "o", linestyle="none", label="$err_u$", linewidth=2, markersize=6)
+                    plt.plot(x, err_y, "s", linestyle="none", label="$err_y$", linewidth=2, markersize=6)
+                    plt.plot(x, err_p, "^", linestyle="none", label="$err_p$", linewidth=2, markersize=6)
             else:
                 plt.plot(x[:len(err_u)], err_u, "o-", label=firstgroup+"$err_u$", linewidth=2, markersize=6)
                 plt.plot(x[:len(err_y)], err_y, "s-", label=firstgroup+"$err_y$", linewidth=2, markersize=6)
@@ -355,9 +360,14 @@ class parabolic_model():
                 plt.plot(x[:len(err_p_2)], err_p_2, "^--", color="tab:green", label=secondgroup+"$err_p$", linewidth=2, markersize=6)
         elif axis=="semilogy":
             if err_u_2 is None:
-                plt.semilogy(x, err_u, "o-", label="$err_u$", linewidth=2, markersize=6)
-                plt.semilogy(x, err_y, "s-", label="$err_y$", linewidth=2, markersize=6)
-                plt.semilogy(x, err_p, "^-", label="$err_p$", linewidth=2, markersize=6)
+                if line:
+                    plt.semilogy(x, err_u, "o-", label="$err_u$", linewidth=2, markersize=6)
+                    plt.semilogy(x, err_y, "s-", label="$err_y$", linewidth=2, markersize=6)
+                    plt.semilogy(x, err_p, "^-", label="$err_p$", linewidth=2, markersize=6)
+                else:
+                    plt.semilogy(x, err_u, "o", linestyle="none", label="$err_u$", linewidth=2, markersize=6)
+                    plt.semilogy(x, err_y, "s", linestyle="none", label="$err_y$", linewidth=2, markersize=6)
+                    plt.semilogy(x, err_p, "^", linestyle="none", label="$err_p$", linewidth=2, markersize=6)
             else:
                 plt.semilogy(x[:len(err_u)], err_u, "o-", label=firstgroup+"$err_u$", linewidth=2, markersize=6)
                 plt.semilogy(x[:len(err_y)], err_y, "s-", label=firstgroup+"$err_y$", linewidth=2, markersize=6)
@@ -367,9 +377,14 @@ class parabolic_model():
                 plt.semilogy(x[:len(err_p_2)], err_p_2, "^--", color="tab:green", label=secondgroup+"$err_p$", linewidth=2, markersize=6)
         elif axis=="loglog":
             if err_u_2 is None:
-                plt.loglog(x, err_u, "o-", label="$err_u$", linewidth=2, markersize=6)
-                plt.loglog(x, err_y, "s-", label="$err_y$", linewidth=2, markersize=6)
-                plt.loglog(x, err_p, "^-", label="$err_p$", linewidth=2, markersize=6)
+                if line:
+                    plt.loglog(x, err_u, "o-", label="$err_u$", linewidth=2, markersize=6)
+                    plt.loglog(x, err_y, "s-", label="$err_y$", linewidth=2, markersize=6)
+                    plt.loglog(x, err_p, "^-", label="$err_p$", linewidth=2, markersize=6)
+                else:   
+                    plt.loglog(x, err_u, "o", linestyle="none", label="$err_u$", linewidth=2, markersize=6)
+                    plt.loglog(x, err_y, "s", linestyle="none", label="$err_y$", linewidth=2, markersize=6)
+                    plt.loglog(x, err_p, "^", linestyle="none", label="$err_p$", linewidth=2, markersize=6)
             else:
                 plt.loglog(x[:len(err_u)], err_u, "o-", label=firstgroup+"$err_u$", linewidth=2, markersize=6)
                 plt.loglog(x[:len(err_y)], err_y, "s-", label=firstgroup+"$err_y$", linewidth=2, markersize=6)
@@ -379,6 +394,7 @@ class parabolic_model():
                 plt.loglog(x[:len(err_p_2)], err_p_2, "^--", color="tab:green", label=secondgroup+"$err_p$", linewidth=2, markersize=6)
         if x_axis is not None:
             plt.xlabel(x_axis, fontsize = fsize)
+            plt.xticks(x,x)
         if title is not None:
             plt.title(title)
         plt.xticks(fontsize = fsize)

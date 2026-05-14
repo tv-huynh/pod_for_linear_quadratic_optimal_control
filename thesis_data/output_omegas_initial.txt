@@ -1,0 +1,476 @@
+
+============================================================
+SIMULATION STARTING
+============================================================
+Regularization: 0.1
+Mesh size h=0.05
+Degrees of freedom N=900
+Time steps K=101
+Diffusion coefficient kappa = 0.1
+Convection coefficient beta = (2.0, 0.0)
+Reaction coefficient gamma = 1.0
+
+============================================================
+ERROR ANALYSIS FOR DIFFERENT CONTROL DOMAINS
+============================================================
+dict_keys(['full', 'central', 'disconnected', 'upwind', 'downwind'])
+
+------------------------------------------------------------
+full control
+------------------------------------------------------------
+Mesh size h=0.05
+Degrees of freedom N=900
+Time steps K=101
+Diffusion coefficient kappa = 0.1
+Convection coefficient beta = (2.0, 0.0)
+Reaction coefficient gamma = 1.0
+k:0, cost=121.50627849511791, err=0.6426078374817035
+k:1, cost=116.3888912092854, err=0.0708752599040232
+k:2, cost=116.29397927709104, err=0.04480562636361736
+k:3, cost=116.22365807083689, err=0.028681545816328976
+k:4, cost=116.15340824411524, err=0.011830277883047026
+k:5, cost=116.1345058561942, err=0.012827248255112703
+k:6, cost=116.15102743073497, err=0.037923984179945594
+k:7, cost=116.12260732046995, err=0.005390064847210425
+k:8, cost=116.12258512422451, err=0.0032171291625357253
+k:9, cost=116.12164646065693, err=0.00283851741910681
+k:10, cost=116.11713701283587, err=0.0017500523530345098
+k:11, cost=116.11387430965802, err=0.0033318950216491327
+k:12, cost=116.11790050291886, err=0.010133187968416795
+k:13, cost=116.11383235045456, err=0.002054728402799636
+k:14, cost=116.11398186133361, err=0.0008204325213768684
+k:15, cost=116.11382885950488, err=0.0005529665013125502
+Converged in k=15 iterations. Time: 2.1609411239624023
+
+Using initial snapshots for POD basis
+Mesh size h=0.05
+Degrees of freedom N=900
+Time steps K=101
+Diffusion coefficient kappa = 0.1
+Convection coefficient beta = (2.0, 0.0)
+Reaction coefficient gamma = 1.0
+(900, 900)
+(900, 900)
+Smallest singular value 0.0 and biggest 1.0.
+Basissize dropped from 10 to 7 due to truncation of small modes.
+
+POD eigenvalues (lambda_i):
+  mode 1: 0.04826144774005733
+  mode 2: 6.914368114986027e-05
+  mode 3: 2.716623888784101e-06
+  mode 4: 1.3021007222625687e-07
+  mode 5: 9.720173294267047e-09
+  mode 6: 5.298138622595048e-10
+  mode 7: 3.210630056279871e-11
+
+POD basis shape: (900, 7)
+Norm of POD basis vector 1: 0.03434477237231292
+Norm of POD basis vector 2: 0.03423732940859353
+Norm of POD basis vector 3: 0.03395413056949748
+Norm of POD basis vector 4: 0.03359489871773471
+Norm of POD basis vector 5: 0.03293888486684539
+Norm of POD basis vector 6: 0.03203698938941346
+Norm of POD basis vector 7: 0.031438998020521476
+Projected model: state_dof=7, control_dof=7
+
+SOLVING REDUCED-ORDER MODEL (ROM)
+k:0, cost=5.231207228782699, err=0.5974017542855682
+k:1, cost=0.2754272753385625, err=0.05520846439739831
+k:2, cost=0.21458050630085612, err=0.03152167915397097
+k:3, cost=0.17794855470834706, err=0.020668426587295712
+k:4, cost=0.13748120545888223, err=0.010728457948577519
+k:5, cost=0.1191166572473571, err=0.008958258111197642
+k:6, cost=0.12711297647372052, err=0.028799728829260716
+k:7, cost=0.10661256178726482, err=0.004909900631174445
+k:8, cost=0.1074881133614372, err=0.0022698456924750477
+k:9, cost=0.10683625529740193, err=0.0018374980491729196
+k:10, cost=0.10541396342735943, err=0.0013690783767146308
+k:11, cost=0.10364996032389771, err=0.0014352084018752062
+k:12, cost=0.10538147302432456, err=0.005540058950303906
+k:13, cost=0.10301538979472347, err=0.0007583074459185388
+k:14, cost=0.10300253169438091, err=0.0005010667191524591
+Converged in k=14 iterations. Time: 0.05905890464782715
+
+### ERROR ESTIMATES ###
+
+A-posteriori estimate: 2.696666e-01
+True error: 5.832203e-02
+
+### TRUE ERRORS ###
+
+Control error: 5.832203e-02
+State error: 1.548052e-01
+Adjoint error: 5.935927e-03
+
+Relative control error: 3.117400e-01
+Relative state error: 1.348684e-01
+Relative adjoint error: 3.131487e-01
+
+###PERFROMANCE###
+FOM optimization time: 2.16 seconds
+ROM optimization time: 0.10 seconds
+Speedup factor: 22.33x
+
+Plotting controls, states, and adjoints...
+
+------------------------------------------------------------
+central control
+------------------------------------------------------------
+Mesh size h=0.05
+Degrees of freedom N=900
+Time steps K=101
+Diffusion coefficient kappa = 0.1
+Convection coefficient beta = (2.0, 0.0)
+Reaction coefficient gamma = 1.0
+k:0, cost=118.21326852985692, err=0.27434253792929897
+k:1, cost=116.52789716181498, err=0.028931489796106213
+k:2, cost=116.49818389107088, err=0.018808624166835018
+k:3, cost=116.47134377459685, err=0.012237186249465813
+k:4, cost=116.43846761966184, err=0.004289164501838636
+k:5, cost=116.42893853373727, err=0.005831468409686134
+k:6, cost=116.43574954456992, err=0.011942352807141485
+k:7, cost=116.4273311985726, err=0.0013832358052755743
+k:8, cost=116.42760062462567, err=0.0006726183454788936
+k:9, cost=116.42732990069541, err=0.0005439092738485006
+k:10, cost=116.42670870854883, err=0.00032040108908587827
+Converged in k=10 iterations. Time: 1.9666082859039307
+
+Using initial snapshots for POD basis
+Mesh size h=0.05
+Degrees of freedom N=900
+Time steps K=101
+Diffusion coefficient kappa = 0.1
+Convection coefficient beta = (2.0, 0.0)
+Reaction coefficient gamma = 1.0
+(900, 900)
+(900, 900)
+Smallest singular value 0.0 and biggest 1.0.
+Basissize dropped from 10 to 7 due to truncation of small modes.
+
+POD eigenvalues (lambda_i):
+  mode 1: 0.048261447740057285
+  mode 2: 6.914368114986057e-05
+  mode 3: 2.7166238887844493e-06
+  mode 4: 1.3021007222618027e-07
+  mode 5: 9.720173294283313e-09
+  mode 6: 5.298138624757894e-10
+  mode 7: 3.2106300516849914e-11
+
+POD basis shape: (900, 7)
+Norm of POD basis vector 1: 0.03434477237231292
+Norm of POD basis vector 2: 0.03423732940859353
+Norm of POD basis vector 3: 0.03395413056949748
+Norm of POD basis vector 4: 0.033594898717734495
+Norm of POD basis vector 5: 0.0329388848668423
+Norm of POD basis vector 6: 0.032036989389302516
+Norm of POD basis vector 7: 0.031438998020360126
+Projected model: state_dof=7, control_dof=7
+
+SOLVING REDUCED-ORDER MODEL (ROM)
+k:0, cost=1.677093810510146, err=0.17608555642535867
+k:1, cost=0.38737491608834534, err=0.015090509501484205
+k:2, cost=0.3734059642497199, err=0.00799527669428043
+k:3, cost=0.3630777973595432, err=0.004403485677795286
+k:4, cost=0.3555917041318795, err=0.0017366077920372303
+k:5, cost=0.3517781082951634, err=0.0011525079585934545
+k:6, cost=0.35417205750193326, err=0.0026787585606271964
+k:7, cost=0.35102596560305155, err=0.0003614505042383712
+k:8, cost=0.3514068628600049, err=0.00011290239109184563
+Converged in k=8 iterations. Time: 0.040686845779418945
+
+### ERROR ESTIMATES ###
+
+A-posteriori estimate: 3.430137e-01
+True error: 1.344917e-01
+
+### TRUE ERRORS ###
+
+Control error: 1.344917e-01
+State error: 3.910870e-01
+Adjoint error: 2.726562e-02
+
+Relative control error: 8.101766e-01
+Relative state error: 4.528873e-01
+Relative adjoint error: 3.687837e-01
+
+###PERFROMANCE###
+FOM optimization time: 1.97 seconds
+ROM optimization time: 0.07 seconds
+Speedup factor: 27.14x
+
+Plotting controls, states, and adjoints...
+
+------------------------------------------------------------
+disconnected control
+------------------------------------------------------------
+Mesh size h=0.05
+Degrees of freedom N=900
+Time steps K=101
+Diffusion coefficient kappa = 0.1
+Convection coefficient beta = (2.0, 0.0)
+Reaction coefficient gamma = 1.0
+k:0, cost=118.69249209329429, err=0.32539071165546507
+k:1, cost=116.41097618274038, err=0.03787947225666082
+k:2, cost=116.36401565666057, err=0.022399542389281667
+k:3, cost=116.32959208839763, err=0.01312500390910933
+k:4, cost=116.3007433953206, err=0.005982617284898185
+k:5, cost=116.2881923720574, err=0.00509372113309983
+k:6, cost=116.29476066184974, err=0.014870920761961656
+k:7, cost=116.28246370514056, err=0.0022803302653531077
+k:8, cost=116.28322525300783, err=0.0009602077655372628
+k:9, cost=116.28287174174548, err=0.0007513396391522371
+k:10, cost=116.28216784357114, err=0.00047597340864209236
+k:11, cost=116.28130349850743, err=0.0004173576645501426
+Converged in k=11 iterations. Time: 2.448080062866211
+
+Using initial snapshots for POD basis
+Mesh size h=0.05
+Degrees of freedom N=900
+Time steps K=101
+Diffusion coefficient kappa = 0.1
+Convection coefficient beta = (2.0, 0.0)
+Reaction coefficient gamma = 1.0
+(900, 900)
+(900, 900)
+Smallest singular value 0.0 and biggest 1.0.
+Basissize dropped from 10 to 7 due to truncation of small modes.
+
+POD eigenvalues (lambda_i):
+  mode 1: 0.04826144774005731
+  mode 2: 6.914368114986027e-05
+  mode 3: 2.7166238887840944e-06
+  mode 4: 1.302100722261534e-07
+  mode 5: 9.720173294233839e-09
+  mode 6: 5.298138622238531e-10
+  mode 7: 3.2106300458513053e-11
+
+POD basis shape: (900, 7)
+Norm of POD basis vector 1: 0.034344772372312926
+Norm of POD basis vector 2: 0.03423732940859353
+Norm of POD basis vector 3: 0.03395413056949748
+Norm of POD basis vector 4: 0.033594898717734634
+Norm of POD basis vector 5: 0.032938884866845
+Norm of POD basis vector 6: 0.03203698938945252
+Norm of POD basis vector 7: 0.031438998019144494
+Projected model: state_dof=7, control_dof=7
+
+SOLVING REDUCED-ORDER MODEL (ROM)
+k:0, cost=1.6410851990027837, err=0.1642284452991524
+k:1, cost=0.24973694202883792, err=0.01725902599981754
+k:2, cost=0.22565457744550857, err=0.00959207100704486
+k:3, cost=0.20436120885006623, err=0.004786057081308592
+k:4, cost=0.19131005926287228, err=0.00139162919591614
+k:5, cost=0.18607087849825715, err=0.0011743077597931918
+k:6, cost=0.189940575224452, err=0.0017196058671954124
+k:7, cost=0.18678279907475492, err=0.00018465413662034652
+Converged in k=7 iterations. Time: 0.03569531440734863
+
+### ERROR ESTIMATES ###
+
+A-posteriori estimate: 3.050850e-01
+True error: 1.803220e-01
+
+### TRUE ERRORS ###
+
+Control error: 1.803220e-01
+State error: 4.269282e-01
+Adjoint error: 3.461524e-02
+
+Relative control error: 9.829422e-01
+Relative state error: 4.287843e-01
+Relative adjoint error: 5.696487e-01
+
+###PERFROMANCE###
+FOM optimization time: 2.45 seconds
+ROM optimization time: 0.07 seconds
+Speedup factor: 37.25x
+
+Plotting controls, states, and adjoints...
+
+------------------------------------------------------------
+upwind control
+------------------------------------------------------------
+Mesh size h=0.05
+Degrees of freedom N=900
+Time steps K=101
+Diffusion coefficient kappa = 0.1
+Convection coefficient beta = (2.0, 0.0)
+Reaction coefficient gamma = 1.0
+k:0, cost=120.11987169272935, err=0.48805450229278796
+k:1, cost=116.33998826121447, err=0.050490203824962436
+k:2, cost=116.27898787839815, err=0.031029784904429696
+k:3, cost=116.23450650617373, err=0.019544361178694174
+k:4, cost=116.19069349914213, err=0.007966979949531381
+k:5, cost=116.1775622813067, err=0.008415397784195778
+k:6, cost=116.18725444115012, err=0.022820512117925837
+k:7, cost=116.17096532992356, err=0.003029748864087817
+k:8, cost=116.17129776250164, err=0.0018742591051078498
+k:9, cost=116.17070829590206, err=0.0016335293995288782
+k:10, cost=116.16833059666365, err=0.0009101839909485721
+k:11, cost=116.16620363610079, err=0.002029974536987007
+k:12, cost=116.16931617857395, err=0.005642334800445539
+k:13, cost=116.16664624266473, err=0.0007471577071150595
+k:14, cost=116.16673572602056, err=0.00032572121541722275
+Converged in k=14 iterations. Time: 2.6994640827178955
+
+Using initial snapshots for POD basis
+Mesh size h=0.05
+Degrees of freedom N=900
+Time steps K=101
+Diffusion coefficient kappa = 0.1
+Convection coefficient beta = (2.0, 0.0)
+Reaction coefficient gamma = 1.0
+(900, 900)
+(900, 900)
+Smallest singular value 0.0 and biggest 1.0.
+Basissize dropped from 10 to 7 due to truncation of small modes.
+
+POD eigenvalues (lambda_i):
+  mode 1: 0.0482614477400573
+  mode 2: 6.914368114986027e-05
+  mode 3: 2.7166238887841465e-06
+  mode 4: 1.3021007222616248e-07
+  mode 5: 9.72017329441051e-09
+  mode 6: 5.298138622633471e-10
+  mode 7: 3.210630047687441e-11
+
+POD basis shape: (900, 7)
+Norm of POD basis vector 1: 0.03434477237231292
+Norm of POD basis vector 2: 0.034237329408593524
+Norm of POD basis vector 3: 0.033954130569497476
+Norm of POD basis vector 4: 0.0335948987177346
+Norm of POD basis vector 5: 0.03293888486684556
+Norm of POD basis vector 6: 0.032036989389424106
+Norm of POD basis vector 7: 0.03143899801926889
+Projected model: state_dof=7, control_dof=7
+
+SOLVING REDUCED-ORDER MODEL (ROM)
+k:0, cost=3.8772754005709906, err=0.45441140011487674
+k:1, cost=0.2787156862878461, err=0.0382120885006344
+k:2, cost=0.24337236094484882, err=0.020187638898637675
+k:3, cost=0.22435709093117043, err=0.012610417162676486
+k:4, cost=0.20651724906670427, err=0.006831612412184035
+k:5, cost=0.1968115040009016, err=0.005201551610896791
+k:6, cost=0.1987887011285481, err=0.016097975535664097
+k:7, cost=0.18821863753534804, err=0.003179135301426081
+k:8, cost=0.1892127861291048, err=0.0013378291298283035
+k:9, cost=0.18875294770872605, err=0.001094852007324047
+k:10, cost=0.18786227517075718, err=0.0007606274296565083
+k:11, cost=0.1864035204010738, err=0.0010616167887128004
+k:12, cost=0.18846715895339383, err=0.003934728426834688
+k:13, cost=0.18640117567821052, err=0.0003764152696385966
+Converged in k=13 iterations. Time: 0.0894627571105957
+
+### ERROR ESTIMATES ###
+
+A-posteriori estimate: 2.377453e-01
+True error: 8.431750e-02
+
+### TRUE ERRORS ###
+
+Control error: 8.431750e-02
+State error: 1.594226e-01
+Adjoint error: 9.729586e-03
+
+Relative control error: 4.624573e-01
+Relative state error: 1.439586e-01
+Relative adjoint error: 3.031711e-01
+
+###PERFROMANCE###
+FOM optimization time: 2.70 seconds
+ROM optimization time: 0.12 seconds
+Speedup factor: 21.85x
+
+Plotting controls, states, and adjoints...
+
+------------------------------------------------------------
+downwind control
+------------------------------------------------------------
+Mesh size h=0.05
+Degrees of freedom N=900
+Time steps K=101
+Diffusion coefficient kappa = 0.1
+Convection coefficient beta = (2.0, 0.0)
+Reaction coefficient gamma = 1.0
+k:0, cost=117.59899935102801, err=0.17652216054852365
+k:1, cost=116.57534272511667, err=0.022192306943514727
+k:2, cost=116.54914120202227, err=0.013633015819498329
+k:3, cost=116.52442143150866, err=0.006551459269422996
+k:4, cost=116.51033193558183, err=0.002680929181888669
+k:5, cost=116.50494909666719, err=0.0022815304928320668
+k:6, cost=116.50824067185336, err=0.004563253120839112
+k:7, cost=116.50388965625542, err=0.0007659087081483601
+k:8, cost=116.50421000243324, err=0.00030042072545150814
+k:9, cost=116.50404536304467, err=0.0002364606601673711
+Converged in k=9 iterations. Time: 1.8035001754760742
+
+Using initial snapshots for POD basis
+Mesh size h=0.05
+Degrees of freedom N=900
+Time steps K=101
+Diffusion coefficient kappa = 0.1
+Convection coefficient beta = (2.0, 0.0)
+Reaction coefficient gamma = 1.0
+(900, 900)
+(900, 900)
+Smallest singular value 0.0 and biggest 1.0.
+Basissize dropped from 10 to 7 due to truncation of small modes.
+
+POD eigenvalues (lambda_i):
+  mode 1: 0.04826144774005734
+  mode 2: 6.914368114986024e-05
+  mode 3: 2.7166238887839826e-06
+  mode 4: 1.3021007222614495e-07
+  mode 5: 9.720173294176987e-09
+  mode 6: 5.298138621879196e-10
+  mode 7: 3.210630034204867e-11
+
+POD basis shape: (900, 7)
+Norm of POD basis vector 1: 0.03434477237231292
+Norm of POD basis vector 2: 0.03423732940859353
+Norm of POD basis vector 3: 0.03395413056949748
+Norm of POD basis vector 4: 0.033594898717734675
+Norm of POD basis vector 5: 0.03293888486684025
+Norm of POD basis vector 6: 0.03203698938956689
+Norm of POD basis vector 7: 0.031438998014275514
+Projected model: state_dof=7, control_dof=7
+
+SOLVING REDUCED-ORDER MODEL (ROM)
+k:0, cost=1.4650386344937296, err=0.14599246949289643
+k:1, cost=0.49829025639719493, err=0.012153215448066173
+k:2, cost=0.4881478227584741, err=0.006886442743817209
+k:3, cost=0.4794868702023599, err=0.003983091692477296
+k:4, cost=0.4718036315660924, err=0.0013438870896434918
+k:5, cost=0.46831762318969045, err=0.0011649926434533727
+k:6, cost=0.47076216279374256, err=0.002194732218956857
+k:7, cost=0.46830728975777214, err=0.000269116653779984
+k:8, cost=0.4685745677961922, err=6.93003838089462e-05
+Converged in k=8 iterations. Time: 0.037811279296875
+
+### ERROR ESTIMATES ###
+
+A-posteriori estimate: 2.065369e-01
+True error: 9.279265e-02
+
+### TRUE ERRORS ###
+
+Control error: 9.279265e-02
+State error: 2.763334e-01
+Adjoint error: 1.797777e-02
+
+Relative control error: 5.570572e-01
+Relative state error: 3.584201e-01
+Relative adjoint error: 1.637949e-01
+
+###PERFROMANCE###
+FOM optimization time: 1.80 seconds
+ROM optimization time: 0.07 seconds
+Speedup factor: 26.51x
+
+Plotting controls, states, and adjoints...
+
+Generating error plots...
+
+============================================================
+SIMULATION COMPLETE
+============================================================

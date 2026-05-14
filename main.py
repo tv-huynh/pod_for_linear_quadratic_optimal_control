@@ -661,7 +661,7 @@ if DIFFERENT_PDE_PARAMETERS:
                 },
             }
             labels = ["0.05","1","20"]
-            xlabel = "Péclet number"
+            xlabel = "Pe"
         elif compare == "reaction":
             pde_parameters = {
                 "more_negative_reaction":{

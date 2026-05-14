@@ -1,4 +1,7 @@
 # POD-Based Control Space Reduction for Convection-Diffusion-Reaction Equations
+
+[![DOI](https://zenodo.org/badge/1062483204.svg)](https://doi.org/10.5281/zenodo.20189655)
+
 In this repository, we provide the code for the numerical experiments of the mathematics master thesis "POD-Based Control Space Reduction for Convection-Diffusion-Reaction Equations" by Thanh-Van Huynh at the University of Konstanz. Supervised by Prof. Dr. Stefan Volkwein, the thesis was written and submitted at the Department of Mathematics and Statistics in May 2026.
 
 ## Setup

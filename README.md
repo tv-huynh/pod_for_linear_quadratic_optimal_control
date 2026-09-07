@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/1062483204.svg)](https://doi.org/10.5281/zenodo.20189655)
 
-In this repository, we provide the code for the numerical experiments of the mathematics master thesis "POD-Based Control Space Reduction for Convection-Diffusion-Reaction Equations" by Thanh-Van Huynh at the University of Konstanz. Supervised by Prof. Dr. Stefan Volkwein, the thesis was written and submitted at the Department of Mathematics and Statistics in May 2026.
+In this repository, we provide the code for the numerical experiments of the mathematics master thesis ["POD-Based Control Space Reduction for Convection-Diffusion-Reaction Equations"](http://nbn-resolving.de/urn:nbn:de:bsz:352-2-onz9kok7mikb4) by Thanh-Van Huynh at the University of Konstanz. Supervised by Prof. Dr. Stefan Volkwein, the thesis was written and submitted at the Department of Mathematics and Statistics in 2026.
 
 ## Setup
 To run the code you need to install the python package FEniCS 2019 in your (local) environment together with SciPy, NumPy and Matplotlib. This can be done using `conda` via
